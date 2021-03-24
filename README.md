@@ -1,6 +1,6 @@
 # Visualizing-Julia-and-Mandelbrot-Sets
 
-See ixm-ibrahim.com/explanations/project-visualizing-julia-and-mandelbrot-sets for an extended gallery.
+See https://ixm-ibrahim.com/explanations/project-visualizing-julia-and-mandelbrot-sets for an extended gallery.
 
 ***CONTROLS:***
 
