@@ -1,0 +1,2 @@
+C:/Users/ixmib/source/repos/Base GLFW Project/Base GLFW Project/include/glm/out/build/x64-Debug (default)/CMakeFiles/edit_cache.dir
+C:/Users/ixmib/source/repos/Base GLFW Project/Base GLFW Project/include/glm/out/build/x64-Debug (default)/CMakeFiles/rebuild_cache.dir
