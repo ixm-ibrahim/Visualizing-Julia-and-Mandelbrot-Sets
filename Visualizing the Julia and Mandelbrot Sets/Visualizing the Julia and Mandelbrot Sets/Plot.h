@@ -59,7 +59,7 @@ enum Buddhabrot
 	NORMAL = 1, INVERSE
 };
 
-struct RiemannMandelbrot
+struct Fractal
 {
 	double maxIterations;
 	glm::vec4 bailout;

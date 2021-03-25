@@ -59,7 +59,7 @@ class Window
 		Shader* julia;
 		Shader* mandelbrot;
 
-		RiemannMandelbrot settings;
+		Fractal settings;
 
 		Window();
 		Window(int, int, int = 4, int = 5);

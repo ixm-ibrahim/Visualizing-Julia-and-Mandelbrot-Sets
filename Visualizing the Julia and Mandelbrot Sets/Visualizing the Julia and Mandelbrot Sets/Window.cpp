@@ -144,7 +144,7 @@ void Window::Init()
 #endif
 
 
-	this->window = glfwCreateWindow(this->width, this->height, "GLFW Mandelbrot Project", NULL, NULL);
+	this->window = glfwCreateWindow(this->width, this->height, "Visualizing Julia and Mandelbrot Sets", NULL, NULL);
 
 	if (this->window == NULL)
 	{
@@ -365,6 +365,14 @@ void Window::ProcessInput(float deltaInput)
 	{
 		float change = 1 * deltaInput;
 
+		// Change speed
+		if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+			change /= 4;
+		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+			change *= 4;
+		if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
+			change *= -1;
+
 
 		// Reset values
 		if (JustPressed(GLFW_KEY_R))
@@ -512,14 +520,6 @@ void Window::ProcessInput(float deltaInput)
 		else if (glfwGetKey(window, GLFW_KEY_BACKSPACE) == GLFW_RELEASE)
 			keyState[GLFW_KEY_BACKSPACE] = GLFW_RELEASE;
 
-		// Change speed
-		if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-			change /= 4;
-		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-			change *= 4;
-		if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
-			change *= -1;
-
 		float rad = rollAngle * M_PI/180;
 		float rad90 = rad +  M_PI/2;
 
@@ -646,15 +646,6 @@ void Window::ProcessInput(float deltaInput)
 		}
 		else if (glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_RELEASE)
 			keyState[GLFW_KEY_MINUS] = GLFW_RELEASE;
-
-		/*
-		std::cout << "zoom: " << settings.zoom << "\n"
-			<< "maxIterations: " << settings.maxIterations << "\n"
-			<< "bailout: " << settings.bailout << "\n"
-			<< "maxDistance: " << settings.maxDistance << "\n"
-			<< "distFineness: " << settings.distFineness << "\n"
-			<< "\n";
-		*/
 	}
 }
 
