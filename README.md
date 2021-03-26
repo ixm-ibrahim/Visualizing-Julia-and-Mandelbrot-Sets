@@ -4,13 +4,15 @@ See https://ixm-ibrahim.com/explanations/project-visualizing-julia-and-mandelbro
 
 ***CONTROLS:***
 
-  **WASD, QE**: camera movement
+  **WASD, QE**: camera movement (for 3D mode, press right-control to move the fractal center)
   **Mouse**: camera movement
   **Scroll**: zoom
-  **R**: reset all values
+  **T**: reset all values
 
-  **IJKL**: movement along the omplex plane
+  **IJKL**: movement along the complex plane
   **O, U**: zoom in and out on the complex plane
+  
+  **Grave Accent**: display all values to the console
    
   **Left, Right, Down Arrow Keys**: decrease, increase, or stop changing the animation
   ** Up Arrow Key**: speed time up
@@ -18,6 +20,7 @@ See https://ixm-ibrahim.com/explanations/project-visualizing-julia-and-mandelbro
   
   **Enter**: cycle through the available fractals
   **Backslash**: cycle through available orbit traps
+  **Backspace*: toggle centering on first critical point of julia set while animating
   
   **1**: change the maximum iterations
   **2**: change the bailout radius
@@ -37,6 +40,10 @@ See https://ixm-ibrahim.com/explanations/project-visualizing-julia-and-mandelbro
   **-**: toggle smooth coloring
   **+**: toggle complex conjugate
   **Tab**: toggle julia set
-  **Backspace*: toggle centering on first critical point of julia set
-  
-  
+  **Space**: toggle 3D mode (projecting fractal onto the Riemann Sphere)
+  **Slash**: toggle lighting in 3D mode
+  **Period**: toggle terrain height scale in 3D mode
+  **Comma**: toggle terrain color in 3D mode
+
+
+**Known Bugs**: 2D mode is scaled in (this is due to a bug in the tessellation shaders), and terrain color is not correct (I think tessellation is the issue here as well)
