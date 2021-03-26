@@ -99,9 +99,9 @@ void Window::ResetKeyState()
 	this->keyState.insert({GLFW_KEY_RIGHT, GLFW_RELEASE});			// reverse animation
 	this->keyState.insert({GLFW_KEY_1, GLFW_RELEASE});				// change maxIterations
 	this->keyState.insert({GLFW_KEY_2, GLFW_RELEASE});				// change bailout
-		this->keyState.insert({GLFW_KEY_COMMA, GLFW_RELEASE});		// change bailout.y
-		this->keyState.insert({GLFW_KEY_PERIOD, GLFW_RELEASE});		// change bailout.z
-		this->keyState.insert({GLFW_KEY_SLASH, GLFW_RELEASE});		// change bailout.w
+		this->keyState.insert({GLFW_KEY_COMMA, GLFW_RELEASE});		//@change bailout.y
+		this->keyState.insert({GLFW_KEY_PERIOD, GLFW_RELEASE});		//@change bailout.z
+		this->keyState.insert({GLFW_KEY_SLASH, GLFW_RELEASE});		//@change bailout.w
 	this->keyState.insert({GLFW_KEY_3, GLFW_RELEASE});				// change maxDistance
 	this->keyState.insert({GLFW_KEY_4, GLFW_RELEASE});				// change distFineness
 	this->keyState.insert({GLFW_KEY_5, GLFW_RELEASE});				// change power
@@ -116,10 +116,13 @@ void Window::ResetKeyState()
 	this->keyState.insert({GLFW_KEY_ENTER, GLFW_RELEASE});			// change fractal type
 	this->keyState.insert({GLFW_KEY_LEFT_BRACKET, GLFW_RELEASE});	// change exterior coloring
 	this->keyState.insert({GLFW_KEY_RIGHT_BRACKET, GLFW_RELEASE});	// change interior coloring
-	this->keyState.insert({GLFW_KEY_BACKSPACE, GLFW_RELEASE});		//@toggle centering on julia critical point
+	this->keyState.insert({GLFW_KEY_BACKSPACE, GLFW_RELEASE});		// toggle centering on julia critical point
 	this->keyState.insert({GLFW_KEY_BACKSLASH, GLFW_RELEASE});		// change orbit trap
+	this->keyState.insert({GLFW_KEY_SPACE, GLFW_RELEASE});			// toggle riemann sphere
+	this->keyState.insert({GLFW_KEY_PERIOD, GLFW_RELEASE});			// toggle terrain
+	this->keyState.insert({GLFW_KEY_SLASH, GLFW_RELEASE});			// toggle lighting
 	this->keyState.insert({GLFW_KEY_R, GLFW_RELEASE});				// reset values
-	this->keyState.insert({GLFW_KEY_SEMICOLON, GLFW_RELEASE});		// display information
+	this->keyState.insert({GLFW_KEY_GRAVE_ACCENT, GLFW_RELEASE});	// display information
 	this->keyState.insert({GLFW_KEY_LEFT_CONTROL, GLFW_RELEASE});
 	this->keyState.insert({GLFW_KEY_LEFT_SHIFT, GLFW_RELEASE});
 	this->keyState.insert({GLFW_KEY_LEFT_ALT, GLFW_RELEASE});
@@ -172,6 +175,9 @@ void Window::Init()
 	lastMouseX = this->width / 2;
 	lastMouseY = this->height / 2;
 
+	this->camera = new Camera(this->window);
+	this->camera->SetSetting("lock", true);
+
 	ResetKeyState();
 
 	InitObjects();
@@ -187,7 +193,11 @@ void Window::Terminate()
 {
 	glDeleteVertexArrays(1, &this->VAO_plane);
 	glDeleteBuffers(1, &this->VBO_plane);
+	glDeleteVertexArrays(1, &this->VAO_sphere);
+	glDeleteBuffers(1, &this->VBO_sphere);
 
+	delete icosphere;
+	delete camera;
 	delete julia;
 	delete mandelbrot;
 
@@ -239,6 +249,8 @@ void Window::GladLoader()
 *********************************************************************/
 void Window::InitObjects()
 {
+	// 2D
+
 	TexturedVertex points[6];
 
 	//	(-1,1)   (1,1)
@@ -273,6 +285,33 @@ void Window::InitObjects()
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
+
+	// 3D
+
+	icosphere = new IcoSphere(4, 1);
+
+	glGenVertexArrays(1, &VAO_sphere);
+	glGenBuffers(1, &VBO_sphere);
+
+	// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+	glBindVertexArray(VAO_sphere);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_sphere);
+	glBufferData(GL_ARRAY_BUFFER, icosphere->GetSize(), icosphere->vertices, GL_STATIC_DRAW);
+
+	// position attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	// normal attribute
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	// texture coord attribute
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+
+
 	// Riemann Mandelbrot initial settings
 	settings.Init();
 }
@@ -286,8 +325,10 @@ void Window::InitObjects()
 *********************************************************************/
 void Window::InitShaders()
 {
-	mandelbrot = new Shader("Shaders/fractal_plane.vert", "Shaders/mandelbrot.frag");
-	julia = new Shader("Shaders/fractal_plane.vert", "Shaders/julia.frag");
+	//mandelbrot = new Shader("Shaders/fractal_plane.vert", "Shaders/mandelbrot.frag");
+	//julia = new Shader("Shaders/fractal_plane.vert", "Shaders/julia.frag");
+	mandelbrot = new Shader("Shaders/fractal.vert", "Shaders/riemann_sphere.tesc", "Shaders/riemann_mandelbrot.tese", "Shaders/mandelbrot.frag");
+	julia = new Shader("Shaders/fractal.vert", "Shaders/riemann_sphere.tesc", "Shaders/riemann_julia.tese", "Shaders/julia.frag");
 }
 
 bool Window::JustPressed(int key)
@@ -314,6 +355,9 @@ void Window::ProcessInput(float deltaInput)
 
 	// Mouse controls
 	{
+		if (settings.useRiemannSphere)
+			camera->KeyboardInput(keyState, deltaTime);
+
 		bool leftClick = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
 		bool rightClick = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
 
@@ -324,7 +368,9 @@ void Window::ProcessInput(float deltaInput)
 
 		if (deltaX != 0 || deltaY != 0)
 		{
-			if (rightClick)
+			if (settings.useRiemannSphere)
+				camera->MouseInput(deltaX, deltaY, leftClick, rightClick);
+			else if (rightClick)
 			{
 				float rad = rollAngle * M_PI / 180;
 				float rad90 = rad + M_PI / 2;
@@ -341,21 +387,26 @@ void Window::ProcessInput(float deltaInput)
 
 		if (scrollOffset != 0)
 		{
-			float rad = rollAngle * M_PI / 180;
-			float rad90 = rad + M_PI / 2;
+			if (settings.useRiemannSphere)
+				camera->ScrollInput(scrollOffset);
+			else
+			{
+				float rad = rollAngle * M_PI / 180;
+				float rad90 = rad + M_PI / 2;
 
-			glm::vec2 xRoll = glm::vec2(cos(rad), sin(rad));
-			glm::vec2 yRoll = glm::vec2(cos(rad90), sin(rad90));
+				glm::vec2 xRoll = glm::vec2(cos(rad), sin(rad));
+				glm::vec2 yRoll = glm::vec2(cos(rad90), sin(rad90));
 
-			glm::vec2 normalizedMousePos = glm::vec2((float)lastMouseX / width, (float)lastMouseY / height) * 2.f - 1.f;
-			glm::vec2 aspectRatio = glm::vec2((float)width / height, -1);
-			glm::vec2 offset = normalizedMousePos * settings.radius * aspectRatio;
+				glm::vec2 normalizedMousePos = glm::vec2((float)lastMouseX / width, (float)lastMouseY / height) * 2.f - 1.f;
+				glm::vec2 aspectRatio = glm::vec2((float)width / height, -1);
+				glm::vec2 offset = normalizedMousePos * settings.radius * aspectRatio;
 
-			//glm::vec2 mousePos = settings.center + offset / (float)pow(2,settings.zoom);
-			glm::vec2 mousePos = settings.center + (xRoll * offset.x + yRoll * offset.y) / (float)pow(2, settings.zoom);
-			settings.zoom += scrollOffset / 10.f;
-			//settings.center = mousePos - offset / (float)pow(2, settings.zoom);
-			settings.center = mousePos - (xRoll * offset.x + yRoll * offset.y) / (float)pow(2, settings.zoom);
+				//glm::vec2 mousePos = settings.center + offset / (float)pow(2,settings.zoom);
+				glm::vec2 mousePos = settings.center + (xRoll * offset.x + yRoll * offset.y) / (float)pow(2, settings.zoom);
+				settings.zoom += scrollOffset / 10.f;
+				//settings.center = mousePos - offset / (float)pow(2, settings.zoom);
+				settings.center = mousePos - (xRoll * offset.x + yRoll * offset.y) / (float)pow(2, settings.zoom);
+			}
 
 			scrollOffset = 0;
 		}
@@ -363,7 +414,7 @@ void Window::ProcessInput(float deltaInput)
 
 	// Keyboard controls
 	{
-		float change = 1 * deltaInput;
+		float change = 2 * deltaInput;
 
 		// Change speed
 		if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
@@ -388,7 +439,7 @@ void Window::ProcessInput(float deltaInput)
 
 
 		// Display values
-		if (JustPressed(GLFW_KEY_SEMICOLON))
+		if (JustPressed(GLFW_KEY_GRAVE_ACCENT))
 		{
 			std::cout << "PARAMETERS:\n"
 					  << "\tCenter: " << settings.center.x << ", " << settings.center.y << "\n"
@@ -410,8 +461,14 @@ void Window::ProcessInput(float deltaInput)
 					  << "\tInterior Coloring: " << ColToStr(settings.interiorColoring) << "\n"
 					  << "\tFold Angle: " << settings.foldAngle << "\n"
 					  << "\tFold Count: " << settings.foldCount << "\n"
-					  << "\tFold Offset: " << settings.foldOffset.x << ", " << settings.foldOffset.y << "\n";
+					  << "\tFold Offset: " << settings.foldOffset.x << ", " << settings.foldOffset.y << "\n"
+					  << "\tProjecting onto Riemann Sphere: " << (settings.useRiemannSphere ? "YES" : "NO") << "\n";
 
+			if (settings.useRiemannSphere)
+			{
+				std::cout << "\tUsing Lighting: " << (settings.useLighting ? "YES" : "NO") << "\n"
+						  << "\tTerrain Scale: " << settings.terrain << "\n";
+			}
 			if (settings.useDistance)
 			{
 				std::cout << "\tMaximum Distance: " << settings.maxDistance << "\n"
@@ -424,10 +481,34 @@ void Window::ProcessInput(float deltaInput)
 						  << "\t\tCentered at Critical Point: " << (settings.isJuliaCentered ? "YES" : "NO") << "\n";
 			}	  
 
-			keyState[GLFW_KEY_SEMICOLON] = GLFW_PRESS;
+			keyState[GLFW_KEY_GRAVE_ACCENT] = GLFW_PRESS;
 		}
-		else if (glfwGetKey(window, GLFW_KEY_SEMICOLON) == GLFW_RELEASE)
-			keyState[GLFW_KEY_SEMICOLON] = GLFW_RELEASE;
+		else if (glfwGetKey(window, GLFW_KEY_GRAVE_ACCENT) == GLFW_RELEASE)
+			keyState[GLFW_KEY_GRAVE_ACCENT] = GLFW_RELEASE;
+
+		// Toggle Riemann Sphere
+		if (JustPressed(GLFW_KEY_SPACE))
+		{
+			settings.useRiemannSphere = !settings.useRiemannSphere;
+
+			keyState[GLFW_KEY_SPACE] = GLFW_PRESS;
+		}
+		else if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
+			keyState[GLFW_KEY_SPACE] = GLFW_RELEASE;
+
+		// Toggle Riemann Sphere
+		if (glfwGetKey(window, GLFW_KEY_PERIOD) == GLFW_PRESS)
+			settings.terrain += change / 10.f;
+
+		// Toggle 3D lighting
+		if (JustPressed(GLFW_KEY_SLASH))
+		{
+			settings.useLighting = !settings.useLighting;
+
+			keyState[GLFW_KEY_SLASH] = GLFW_PRESS;
+		}
+		else if (glfwGetKey(window, GLFW_KEY_SLASH) == GLFW_RELEASE)
+			keyState[GLFW_KEY_SLASH] = GLFW_RELEASE;
 
 		// Change fractal type
 		if (JustPressed(GLFW_KEY_ENTER))
@@ -591,10 +672,10 @@ void Window::ProcessInput(float deltaInput)
 		{
 			settings.foldCount += change * zoomFactor;
 			
-			if (settings.foldCount > 2.2)
-				settings.foldCount = 2.2;
-			if (settings.foldCount < 1.8)
-				settings.foldCount = 1.8;
+			if (settings.foldCount > 20)
+				settings.foldCount = 20;
+			if (settings.foldCount < 0)
+				settings.foldCount = 0;
 		}
 		else
 			//settings.foldCount = (int)(settings.foldCount * 10) / 10.f;
@@ -695,6 +776,7 @@ void Window::framebuffer_size_callback(GLFWwindow* window, int width, int height
 	Window* obj = (Window*) glfwGetWindowUserPointer(window);
 	obj->width = width;
 	obj->height = height;
+	obj->camera->SetSetting("aspectRatio", (float) width/height);
 }
 
 /*********************************************************************
@@ -779,6 +861,159 @@ void Window::UpdateFractal(float deltaTime)
 *********************************************************************/
 void Window::RenderLoop()
 {
+	// Lighting
+	glm::vec3 pointLightPos[] =
+	{
+		//glm::vec3(0.7f,  1.2f,  2.0f),
+		//glm::vec3(0.0f,  0.0f,  0.0f),
+		glm::vec3(2.3f, -3.3f, -4.0f),
+		glm::vec3(2.0f, 0.1f, 0.0f),
+		glm::vec3(-4.0f,  2.0f, -12.0f),
+		glm::vec3(0.0f,  0.0f, -3.0f)
+	};
+
+	// Set lighting
+	{
+		mandelbrot->Use();
+		{
+			// directional light
+			mandelbrot->SetInt("dirLight.type", 1);
+			mandelbrot->SetVec3("dirLight.direction", 0.0f, -1.0f, -0.0f);
+			mandelbrot->SetVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
+			mandelbrot->SetVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
+			mandelbrot->SetVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
+			// point light 1
+			mandelbrot->SetInt("pointLights[0].type", 2);
+			mandelbrot->SetVec3("pointLights[0].position", pointLightPos[0]);
+			mandelbrot->SetVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
+			//shader->SetVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
+			mandelbrot->SetVec3("pointLights[0].diffuse", 0.8f, 0.6f, 0.0f);
+			//shader->SetVec3("pointLights[0].specular", 0.8f, 0.8f, 0.8f);
+			mandelbrot->SetVec3("pointLights[0].specular", 0.8f, 0.6f, 0.0f);
+			mandelbrot->SetFloat("pointLights[0].constant", 1.0f);
+			mandelbrot->SetFloat("pointLights[0].linear", 0.09);
+			mandelbrot->SetFloat("pointLights[0].quadratic", 0.032);
+			// point light 2
+			mandelbrot->SetInt("pointLights[1].type", 2);
+			mandelbrot->SetVec3("pointLights[1].position", pointLightPos[1]);
+			mandelbrot->SetVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
+			mandelbrot->SetVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
+			mandelbrot->SetVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
+			mandelbrot->SetFloat("pointLights[1].constant", 1.0f);
+			mandelbrot->SetFloat("pointLights[1].linear", 0.09);
+			mandelbrot->SetFloat("pointLights[1].quadratic", 0.032);
+			// point light 3
+			mandelbrot->SetInt("pointLights[2].type", 2);
+			mandelbrot->SetVec3("pointLights[2].position", pointLightPos[2]);
+			mandelbrot->SetVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
+			mandelbrot->SetVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
+			mandelbrot->SetVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
+			mandelbrot->SetFloat("pointLights[2].constant", 1.0f);
+			mandelbrot->SetFloat("pointLights[2].linear", 0.09);
+			mandelbrot->SetFloat("pointLights[2].quadratic", 0.032);
+			// point light 4
+			mandelbrot->SetInt("pointLights[3].type", 2);
+			mandelbrot->SetVec3("pointLights[3].position", pointLightPos[3]);
+			mandelbrot->SetVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
+			mandelbrot->SetVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
+			mandelbrot->SetVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
+			mandelbrot->SetFloat("pointLights[3].constant", 1.0f);
+			mandelbrot->SetFloat("pointLights[3].linear", 0.09);
+			mandelbrot->SetFloat("pointLights[3].quadratic", 0.032);
+			// spotLight
+			mandelbrot->SetInt("spotLight.type", 3);
+			mandelbrot->SetVec3("spotLight.position", camera->GetPosition());
+			mandelbrot->SetVec3("spotLight.direction", camera->Direction());
+			mandelbrot->SetVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
+			mandelbrot->SetVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
+			mandelbrot->SetVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+			mandelbrot->SetFloat("spotLight.constant", 1.0f);
+			//shader->SetFloat("spotLight.linear", 0.09);
+			mandelbrot->SetFloat("spotLight.linear", 0.15);
+			mandelbrot->SetFloat("spotLight.quadratic", 0.032);
+			mandelbrot->SetFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
+			mandelbrot->SetFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
+
+			// material properties
+			mandelbrot->SetFloat("material.shininess", 64.0f);
+
+			/*
+			shader->SetVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+			shader->SetVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+			shader->SetVec3("material.specular", 0.5f, 0.5f, 0.5f); // specular lighting doesn't have full effect on this object's material
+			*/
+		}
+		julia->Use();
+		{
+			// directional light
+			julia->SetInt("dirLight.type", 1);
+			julia->SetVec3("dirLight.direction", 0.0f, -1.0f, -0.0f);
+			julia->SetVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
+			julia->SetVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
+			julia->SetVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
+			// point light 1
+			julia->SetInt("pointLights[0].type", 2);
+			julia->SetVec3("pointLights[0].position", pointLightPos[0]);
+			julia->SetVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
+			//shader->SetVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
+			julia->SetVec3("pointLights[0].diffuse", 0.8f, 0.6f, 0.0f);
+			//shader->SetVec3("pointLights[0].specular", 0.8f, 0.8f, 0.8f);
+			julia->SetVec3("pointLights[0].specular", 0.8f, 0.6f, 0.0f);
+			julia->SetFloat("pointLights[0].constant", 1.0f);
+			julia->SetFloat("pointLights[0].linear", 0.09);
+			julia->SetFloat("pointLights[0].quadratic", 0.032);
+			// point light 2
+			julia->SetInt("pointLights[1].type", 2);
+			julia->SetVec3("pointLights[1].position", pointLightPos[1]);
+			julia->SetVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
+			julia->SetVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
+			julia->SetVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
+			julia->SetFloat("pointLights[1].constant", 1.0f);
+			julia->SetFloat("pointLights[1].linear", 0.09);
+			julia->SetFloat("pointLights[1].quadratic", 0.032);
+			// point light 3
+			julia->SetInt("pointLights[2].type", 2);
+			julia->SetVec3("pointLights[2].position", pointLightPos[2]);
+			julia->SetVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
+			julia->SetVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
+			julia->SetVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
+			julia->SetFloat("pointLights[2].constant", 1.0f);
+			julia->SetFloat("pointLights[2].linear", 0.09);
+			julia->SetFloat("pointLights[2].quadratic", 0.032);
+			// point light 4
+			julia->SetInt("pointLights[3].type", 2);
+			julia->SetVec3("pointLights[3].position", pointLightPos[3]);
+			julia->SetVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
+			julia->SetVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
+			julia->SetVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
+			julia->SetFloat("pointLights[3].constant", 1.0f);
+			julia->SetFloat("pointLights[3].linear", 0.09);
+			julia->SetFloat("pointLights[3].quadratic", 0.032);
+			// spotLight
+			julia->SetInt("spotLight.type", 3);
+			julia->SetVec3("spotLight.position", camera->GetPosition());
+			julia->SetVec3("spotLight.direction", camera->Direction());
+			julia->SetVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
+			julia->SetVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
+			julia->SetVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+			julia->SetFloat("spotLight.constant", 1.0f);
+			//shader->SetFloat("spotLight.linear", 0.09);
+			julia->SetFloat("spotLight.linear", 0.15);
+			julia->SetFloat("spotLight.quadratic", 0.032);
+			julia->SetFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
+			julia->SetFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
+
+			// material properties
+			julia->SetFloat("material.shininess", 64.0f);
+
+			/*
+			shader->SetVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+			shader->SetVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+			shader->SetVec3("material.specular", 0.5f, 0.5f, 0.5f); // specular lighting doesn't have full effect on this object's material
+			*/
+		}
+	}
+
 	while (!glfwWindowShouldClose(this->window))
 	{
 		// per-frame time logic
@@ -802,12 +1037,24 @@ void Window::RenderLoop()
 		glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		if (settings.useRiemannSphere)
+			camera->Render();
+
 		// Fractal Display
 		{
 			Shader* currentShader = settings.isJulia ? julia : mandelbrot;
 			currentShader->Use();
 
 			// Shader variables
+			currentShader->SetMat4("projection", camera->GetProjectionMatrix());
+			currentShader->SetMat4("view", camera->GetViewMatrix());
+			currentShader->SetMat4("model", glm::mat4(1));
+
+			currentShader->SetVec3("eyePos", camera->GetPosition());
+			currentShader->SetBool("lighting", settings.useLighting);
+			currentShader->SetBool("riemannSphere", settings.useRiemannSphere);
+			currentShader->SetFloat("terrain", settings.terrain);
+
 			glm::vec2 r = settings.radius * glm::vec2((float)width / height, 1);
 
 			currentShader->SetFloat("time", gameTime);
@@ -827,18 +1074,24 @@ void Window::RenderLoop()
 			currentShader->SetInt("exteriorColoring", settings.exteriorColoring);
 			currentShader->SetInt("interiorColoring", settings.interiorColoring);
 
+			currentShader->SetVec2("julia", settings.julia);
 			currentShader->SetFloat("foldCount", settings.foldCount);
 			currentShader->SetFloat("foldAngle", glm::radians(settings.foldAngle));
 			currentShader->SetVec2("foldOffset", settings.foldOffset);
 
 			currentShader->SetFloat("rollAngle", rollAngle);
 
-			if (settings.isJulia)
-				currentShader->SetVec2("julia", settings.julia);
-
 			// Render plane
-			glBindVertexArray(VAO_plane);
-			glDrawArrays(GL_TRIANGLES, 0, 6);
+			if (settings.useRiemannSphere)
+			{
+				glBindVertexArray(VAO_sphere);
+				glDrawArrays(GL_PATCHES, 0, icosphere->GetVertexCount());
+			}
+			else
+			{
+				glBindVertexArray(VAO_plane);
+				glDrawArrays(GL_PATCHES, 0, 6);
+			}
 		}
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)

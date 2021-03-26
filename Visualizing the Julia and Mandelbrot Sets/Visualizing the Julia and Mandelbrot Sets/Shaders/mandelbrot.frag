@@ -1,6 +1,7 @@
 #version 450 core
 
 #define M_PI 3.1415926535897932384626433832795
+#define NR_POINT_LIGHTS 4
 
 #define FRAC_CUSTOM						0
 #define FRAC_MANDELBROT					1
@@ -29,10 +30,61 @@
 #define COL_DOMAIN_DARK_RINGS           10
 #define COL_DOMAIN_BRIGHT_DARK_SMOOTH   11
 
+const int NONE = 0;
+const int DIRECTIONAL_LIGHT = 1;
+const int POINT_LIGHT = 2;
+const int SPOT_LIGHT = 3;
+
+struct Material_Basic
+{
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+
+    float shininess; //Shininess is the power the specular light is raised to
+};
+
+struct Material
+{
+    sampler2D diffuse;
+    sampler2D specular;
+
+    float shininess; //Shininess is the power the specular light is raised to
+};
+
+struct Light
+{
+    int type;
+
+    vec3 position;      // Point,Spot light
+    vec3 direction;     // Directional,Spot light
+    float cutOff;       // Spot light
+    float outerCutOff;  // Spot light
+
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+
+    // Point,Spot light attenuation
+    float constant;
+    float linear;
+    float quadratic;
+};
+
 out vec4 FragColor;
 
 in vec2 TexCoords;
-in vec2 FragPos;
+in vec3 Normal;
+in vec3 FragPosModel;
+in vec3 FragPosWorld;
+
+uniform Light dirLight;
+uniform Light spotLight;
+uniform Light pointLights[NR_POINT_LIGHTS];
+uniform Material material;
+uniform vec3 eyePos;
+uniform bool lighting;
+uniform bool riemannSphere;
 
 uniform float time;
 uniform float zoom;
@@ -57,11 +109,33 @@ uniform vec4 bailout;
 uniform bool useDistance;
 uniform bool isConjugate;
 
+
+vec3 CalcDirLight(Light light);
+vec3 CalcPointLight(Light light);
+vec3 CalcSpotLight(Light light);
+vec3 Ambient(Light light);
+vec3 Diffuse(Light light);
+vec3 Specular(Light light);
+float Attenuation(Light light);
+float Intensity(Light light);
+
 vec3 Mandelbrot();
 
 void main()
 {
-    FragColor = vec4(Mandelbrot(), 1.0);
+    // Lighting
+    vec3 result = vec3(1);
+    
+    if (riemannSphere && lighting)
+    {
+        //vec3 result = CalcDirLight(dirLight);
+        for(int i = 0; i < NR_POINT_LIGHTS; i++)
+            result += CalcPointLight(pointLights[i]);
+        result += CalcSpotLight(spotLight);
+        //vec3 result = CalcSpotLight(spotLight);    
+    }
+
+    FragColor = vec4(result * Mandelbrot(), 1.0);
 }
 
 bool IsBad(vec2 z)
@@ -255,10 +329,13 @@ vec2 ComputeFractal(int type, vec2 z, vec2 c)
 {
     vec2 new_z;
 
-    if (isConjugate)
-        z.y = -z.y;
+    if (fractalType != FRAC_CUSTOM)
+    {
+        z = FoldZ(z);
 
-    z = FoldZ(z);
+        if (isConjugate)
+            z.y = -z.y;
+    }
 
     switch (fractalType)
     {
@@ -271,7 +348,49 @@ vec2 ComputeFractal(int type, vec2 z, vec2 c)
             new_z = c_mul(c_pow(c, c_power), z - c_pow(z, power));
             break;
         default:
-            new_z = c_pow(z, power+1) + c_pow(c, c_power);
+            if (foldCount > 0)
+            {
+                // First fold
+                z = RotateZ(z, -3./4. * 2 * M_PI);    // rotate 270 degrees
+                // no translation
+                z.y = abs(z.y);
+                // no untranslation
+                z = RotateZ(z, 3./4. * 2 * M_PI);    // unrotate
+
+                if (foldCount > 1)
+                {
+                    // Second fold
+                    z = RotateZ(z, -3./8. * 2 * M_PI);  // rotate 135 degrees
+                    // no translation
+                    z.y = abs(z.y);
+                    // no untranslation
+                    z = RotateZ(z, 3./8. * 2 * M_PI);   // unrotate
+
+                    if (foldCount > 2)
+                    {
+                        // Third fold
+                        z = RotateZ(z, -5./8. * 2 * M_PI);  // rotate 225 degrees
+                        // no translation
+                        z.y = abs(z.y);
+                        // no untranslation
+                        z = RotateZ(z, 5./8. * 2 * M_PI);   // unrotate
+
+                        if (foldCount > 3)
+                        {
+                            // Fourth fold
+                            z = RotateZ(z, -1./4. * 2 * M_PI);  // rotate 90 degrees
+                            z -= vec2(-1./2., 0);               // translate y coordinate to -0.5
+                            z.y = abs(z.y);
+                            z += vec2(1./2., 0);                // untranslate
+                            z = RotateZ(z, 1./4. * 2 * M_PI);   // unrotate
+                        }
+                    }
+                }
+            }
+
+
+            //new_z = c_pow(z, power) + c_pow(c, c_power);
+            new_z = c_2(z) + c;
             break;
     }
 
@@ -377,7 +496,7 @@ vec3 DomainColoring(int coloring, vec2 z, float dist, int iter)
     vec3 color;
 
     if (coloring == COL_CLASSIC || coloring == COL_SMOOTH)
-        return ColorFromHSV(vec3(atan(FragPos.y, FragPos.x) * 180 / M_PI + t, 1, 1));
+        return ColorFromHSV(vec3(atan(FragPosModel.y, FragPosModel.x) * 180 / M_PI + t, 1, 1));
 
     float theta = sin(atan(float(z.y), float(z.x))) * 360 + t;
 	float r = length(z);
@@ -531,8 +650,20 @@ vec3 Mandelbrot()
     int iter = 0;
 
     // Initialize image center
-    vec2 z = FragPos;
-    //vec2 z = radius*FragPos/zoom + center;
+    vec2 z;
+    
+    if (riemannSphere)
+    {
+        // Riemann projection
+        vec3 pos = normalize(vec3(FragPosModel.x, FragPosModel.y, FragPosModel.z));
+        float tmp = (1 + (pos.y + 1)/(1 - pos.y)) / 2.0 / zoom ;
+        float r = pos.x*tmp;
+        float i = pos.z*tmp;
+    
+        z = vec2(r + center.x, i + center.y);
+    }
+    else
+        z = FragPosModel.xy;
 
     // Distance estimation
     float dist = 0;
@@ -544,4 +675,103 @@ vec3 Mandelbrot()
         z = MandelbrotLoop(z, maxIterations, iter, true);
 
     return GetColor(z, dist, iter);
+}
+
+vec3 CalcDirLight(Light light)
+{
+    return Ambient(light) + Diffuse(light) + Specular(light);
+}
+
+vec3 CalcPointLight(Light light)
+{
+    return (Ambient(light) + Diffuse(light) + Specular(light)) * Attenuation(light);
+}
+
+vec3 CalcSpotLight(Light light)
+{
+    return (Ambient(light) + (Diffuse(light) + Specular(light)) * Attenuation(light)) * Intensity(light);
+}
+
+vec3 Ambient(Light light)
+{
+    //The ambient color is the color where the light does not directly hit the object.
+    //You can think of it as an underlying tone throughout the object. Or the light coming from the scene/the sky (not the sun).
+    //vec3 ambient = light.ambient * material.ambient;
+    vec3 ambient = light.ambient;
+
+    return ambient;
+}
+
+vec3 Diffuse(Light light)
+{
+    //We calculate the light direction, and make sure the normal is normalized.
+    vec3 norm = normalize(Normal);
+    vec3 lightDir;
+
+    if (light.type == DIRECTIONAL_LIGHT)
+        lightDir = normalize(-light.direction);
+    else
+        lightDir = normalize(light.position - FragPosWorld);
+
+    // Handles two-sided shading
+    //if (dot(lightDir,norm) < 0)
+        //norm = -norm;
+
+    //Diffuse is the part of the light that gives the most, it is the color of the object where it is hit by light.
+    float diff = max(dot(norm, lightDir), 0.0); //We make sure the value is non negative with the max function.
+    //vec3 diffuse = light.diffuse * (diff * material.diffuse);
+    vec3 diffuse = light.diffuse * diff;
+
+    return diffuse;
+}
+
+vec3 Specular(Light light)
+{
+    //We calculate the light direction, and make sure the normal is normalized.
+    vec3 norm = normalize(Normal);
+    vec3 lightDir;
+
+    if (light.type == DIRECTIONAL_LIGHT)
+        lightDir = normalize(-light.direction);
+    else
+        lightDir = normalize(light.position - FragPosWorld);
+        
+    // Handles two-sided shading
+    //if (dot(lightDir,norm) < 0)
+        //norm = -norm;
+
+    //The specular light is the light that shines from the object, like light hitting metal.
+    vec3 viewDir = normalize(eyePos - FragPosWorld);
+    vec3 reflectDir = reflect(-lightDir, norm);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    //vec3 specular = light.specular * (spec * material.specular);
+    //vec3 specular = light.specular * spec * vec3(texture(material.specular, TexCoords));
+    // only show specular on the front side
+    vec3 specular = ((dot(lightDir,norm) < 0) ? vec3(1) : light.specular) * spec;
+    
+    return specular;
+}
+
+float Attenuation(Light light)
+{
+    //The attenuation is the term we use when talking about how dim the light gets over distance
+    //float distance = 1;
+    float distance = length(light.position - FragPosWorld);
+    //This formula is the so called attenuation formula used to calculate the attenuation
+    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+
+    return attenuation;
+}
+
+float Intensity(Light light)
+{
+    vec3 lightDir = normalize(light.position - FragPosWorld);
+
+    //This is how we calculate the spotlight, for a more in depth explanation of how this works. Check out the web tutorials.
+    float theta     = dot(lightDir, normalize(-light.direction));
+    float epsilon   = light.cutOff - light.outerCutOff;
+    float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0); //The intensity, is the lights intensity on a given fragment,
+                                                                                //this is used to make the smooth border.
+
+    return intensity;
 }

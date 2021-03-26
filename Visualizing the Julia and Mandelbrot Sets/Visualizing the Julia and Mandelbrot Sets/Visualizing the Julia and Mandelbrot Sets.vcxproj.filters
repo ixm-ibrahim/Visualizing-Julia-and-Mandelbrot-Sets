@@ -42,6 +42,9 @@
     <ClCompile Include="Plot.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Shader.h">
@@ -57,6 +60,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Plot.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -151,6 +157,24 @@
       <Filter>Resource Files\Shaders</Filter>
     </None>
     <None Include="Shaders\double test.frag">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\riemann_julia.frag">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\riemann_julia.tese">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\riemann_mandelbrot.frag">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\riemann_mandelbrot.tese">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\riemann_sphere.tesc">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\fractal.vert">
       <Filter>Resource Files\Shaders</Filter>
     </None>
   </ItemGroup>

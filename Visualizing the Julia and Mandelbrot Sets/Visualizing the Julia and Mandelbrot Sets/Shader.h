@@ -20,6 +20,7 @@ class Shader
 
         Shader();
         Shader(const char*, const char*);
+        Shader(const char*, const char*, const char*, const char*);
         ~Shader();
 
         void Use();

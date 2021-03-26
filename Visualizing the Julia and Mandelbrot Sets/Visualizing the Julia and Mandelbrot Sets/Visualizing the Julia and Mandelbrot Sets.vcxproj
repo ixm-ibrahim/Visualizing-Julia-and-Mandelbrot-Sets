@@ -161,6 +161,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="Plot.cpp" />
     <ClCompile Include="Program.cpp" />
@@ -170,6 +171,7 @@
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="Plot.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="stb_image.h" />
@@ -207,6 +209,12 @@
     <None Include="Shaders\julia.frag" />
     <None Include="Shaders\fractal_plane.vert" />
     <None Include="Shaders\mandelbrot.frag" />
+    <None Include="Shaders\riemann_julia.frag" />
+    <None Include="Shaders\riemann_julia.tese" />
+    <None Include="Shaders\riemann_mandelbrot.frag" />
+    <None Include="Shaders\riemann_mandelbrot.tese" />
+    <None Include="Shaders\riemann_sphere.tesc" />
+    <None Include="Shaders\fractal.vert" />
     <None Include="Shaders\skybox.frag" />
     <None Include="Shaders\skybox.vert" />
   </ItemGroup>

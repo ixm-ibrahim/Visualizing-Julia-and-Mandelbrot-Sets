@@ -73,10 +73,12 @@ struct Light
 
 out vec4 FragColor;
 
-in vec2 TexCoords;
 in vec3 Normal;
-in vec3 FragPosModel;
 in vec3 FragPosWorld;
+in vec3 FragPosModel;
+in vec2 TexCoords;
+
+in vec3 juliaColor;
 
 uniform Light dirLight;
 uniform Light spotLight;
@@ -84,7 +86,6 @@ uniform Light pointLights[NR_POINT_LIGHTS];
 uniform Material material;
 uniform vec3 eyePos;
 uniform bool lighting;
-uniform bool riemannSphere;
 
 uniform float time;
 uniform float zoom;
@@ -110,6 +111,7 @@ uniform vec4 bailout;
 uniform bool useDistance;
 uniform bool isConjugate;
 
+
 vec3 CalcDirLight(Light light);
 vec3 CalcPointLight(Light light);
 vec3 CalcSpotLight(Light light);
@@ -123,10 +125,17 @@ vec3 Julia();
 
 void main()
 {
+    // properties
+    vec3 norm = normalize(Normal);
+    vec3 viewDir = normalize(eyePos - FragPosWorld);
+
+    // fix repeated texture coords (I don't actually need to do this?)
+    vec2 texCoords = TexCoords;
+
     // Lighting
     vec3 result = vec3(1);
     
-    if (riemannSphere && lighting)
+    if (lighting)
     {
         //vec3 result = CalcDirLight(dirLight);
         for(int i = 0; i < NR_POINT_LIGHTS; i++)
@@ -135,7 +144,15 @@ void main()
         //vec3 result = CalcSpotLight(spotLight);    
     }
 
-    FragColor = vec4(result * Julia(), 1.0);
+    //FragColor = vec4(1.0);
+    //FragColor = vec4(result, 1.0);
+    //FragColor = vec4(vec3(abs(norm.x), abs(norm.y), abs(norm.z)), 1.0);
+    //FragColor = vec4(abs(eyePos), 1.0);
+
+    //FragColor = vec4(Julia(), 1.0);
+    //FragColor = vec4(result * Julia(), 1.0);
+    //FragColor = vec4(juliaColor, 1.0);
+    FragColor = vec4(result * juliaColor, 1.0);
 }
 
 bool IsBad(vec2 z)
@@ -269,14 +286,11 @@ bool Bounded(int type, vec2 z)
 vec2 ComputeFractal(int type, vec2 z, vec2 c)
 {
     vec2 new_z;
-    
-    if (fractalType != FRAC_CUSTOM)
-    {
-        z = FoldZ(z);
 
-        if (isConjugate)
-            z.y = -z.y;
-    }
+    if (isConjugate)
+        z.y = -z.y;
+        
+    z = FoldZ(z);
 
     switch (fractalType)
     {
@@ -289,8 +303,7 @@ vec2 ComputeFractal(int type, vec2 z, vec2 c)
             new_z = c_mul(c_pow(c, c_power), z - c_pow(z, power));
             break;
         default:
-            //new_z = c_pow(z, power) + c_pow(c, c_power);
-            new_z = c_2(z) + c;
+            new_z = c_pow(z, power+2) + c_pow(c, c_power);
             break;
     }
 
@@ -539,22 +552,15 @@ vec3 Julia()
     //vec2 pos = ((gl_FragCoord.xy - .5) / (1000 - 1) - .5) * 2;
 
     int iter = 0;
+
+    // Riemann projection
+    vec3 pos = normalize(vec3(FragPosModel.x, FragPosModel.y, FragPosModel.z));
+    float tmp = (1 + (pos.y + 1)/(1 - pos.y)) / 2.0 / zoom ;
+    float r = pos.x*tmp;
+    float i = pos.z*tmp;
     
     // Initialize image center
-    vec2 z;
-    
-    if (riemannSphere)
-    {
-        // Riemann projection
-        vec3 pos = normalize(vec3(FragPosModel.x, FragPosModel.y, FragPosModel.z));
-        float tmp = (1 + (pos.y + 1)/(1 - pos.y)) / 2.0 / zoom ;
-        float r = pos.x*tmp;
-        float i = pos.z*tmp;
-    
-        z = vec2(r + center.x, i + center.y);
-    }
-    else
-        z = FragPosModel.xy;
+    vec2 z = vec2(r + center.x, i + center.y);
 
     // Distance estimation
     float dist = 0;

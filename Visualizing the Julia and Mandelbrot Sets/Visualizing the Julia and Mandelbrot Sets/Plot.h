@@ -59,7 +59,7 @@ enum Buddhabrot
 	NORMAL = 1, INVERSE
 };
 
-struct Fractal
+struct RiemannMandelbrot
 {
 	double maxIterations;
 	glm::vec4 bailout;
@@ -74,6 +74,9 @@ struct Fractal
 	bool isJulia;
 	bool isJuliaCentered;
 	bool isBuddhabrot;
+	bool useRiemannSphere;
+	bool useLighting;
+	float terrain;
 	glm::vec2 center;
 	glm::vec2 julia;
 	float power;
@@ -94,12 +97,15 @@ struct Fractal
 		this->foldCount = 0;
 		this->foldAngle = 0;
 		this->foldOffset = glm::vec2(0,0);
-		this->zoom = 0;
+		this->zoom = -1;
 		this->useDistance = false;
 		this->isConjugate = false;
 		this->isJulia = false;
 		this->isJuliaCentered = false;
 		this->isBuddhabrot = false;
+		this->useRiemannSphere = false;
+		this->useLighting = false;
+		this->terrain = 0;
 		this->julia = glm::vec2(0, 0);
 		this->center = glm::vec2(0);
 		this->power = 2;
@@ -151,108 +157,40 @@ struct TexturedVertex
 };
 
 
+enum TextureType
+{
+	NONE = 0, SPHERICAL, RIEMANN
+};
 
-	static glm::vec2 ED_set(float a)
-	{
-		glm::vec2 z;
-		z.x = a;
-		z.y = 0.0;
-		return z;
-	}
+class Triangle
+{
+	public:
+		glm::vec3 vertices[3];
+		glm::vec3 center;
+		glm::vec3 normal;
 
-	static glm::vec2 ED_add(glm::vec2 dsa, glm::vec2 dsb)
-	{
-		glm::vec2 dsc;
-		float t1, t2, e;
+		Triangle();
+		Triangle(glm::vec3, glm::vec3, glm::vec3);
+};
 
-		t1 = dsa.x + dsb.x;
-		e = t1 - dsa.x;
-		t2 = ((dsb.x - e) + (dsa.x - (t1 - e))) + dsa.y + dsb.y;
+class IcoSphere
+{
+	private:
+		int count;
 
-		dsc.x = t1 + t2;
-		dsc.y = t2 - (dsc.x - t1);
-		return dsc;
-	}
+	public:
+		TexturedVertex* vertices;
 
-	static glm::vec2 ED_sub(glm::vec2 dsa, glm::vec2 dsb)
-	{
-		glm::vec2 dsc;
-		float e, t1, t2;
+		IcoSphere();
+		IcoSphere(int, float, TextureType = SPHERICAL);
+		~IcoSphere();
 
-		t1 = dsa.x - dsb.x;
-		e = t1 - dsa.x;
-		t2 = ((-dsb.x - e) + (dsa.x - (t1 - e))) + dsa.y - dsb.y;
+		glm::vec2 GetSphereCoord(glm::vec3 v) const;
+		glm::vec2 GetSphereCoord2(glm::vec3 v) const;
 
-		dsc.x = t1 + t2;
-		dsc.y = t2 - (dsc.x - t1);
-		return dsc;
-	}
-
-	static glm::vec2 ED_mul(glm::vec2 dsa, glm::vec2 dsb)
-	{
-		glm::vec2 dsc;
-		float c11, c21, c2, e, t1, t2;
-		float a1, a2, b1, b2, cona, conb, split = 8193.;
-
-		cona = dsa.x * split;
-		conb = dsb.x * split;
-		a1 = cona - (cona - dsa.x);
-		b1 = conb - (conb - dsb.x);
-		a2 = dsa.x - a1;
-		b2 = dsb.x - b1;
-
-		c11 = dsa.x * dsb.x;
-		c21 = a2 * b2 + (a2 * b1 + (a1 * b2 + (a1 * b1 - c11)));
-
-		c2 = dsa.x * dsb.y + dsa.y * dsb.x;
-
-		t1 = c11 + c2;
-		e = t1 - c11;
-		t2 = dsa.y * dsb.y + ((c2 - e) + (c11 - (t1 - e))) + c21;
-
-		dsc.x = t1 + t2;
-		dsc.y = t2 - (dsc.x - t1);
-
-		return dsc;
-	}
-
-	static glm::vec2 ED_div(glm::vec2 dsa, glm::vec2 dsb)
-	{
-		glm::vec2 dsc;
-		float c11, c21, c2, e, s1, s2, t1, t2, t11, t12, t21, t22;
-		float a1, a2, b1, b2, cona, conb, split = 8193.;
-
-		s1 = dsa.x / dsb.x;
-
-		cona = s1 * split;
-		conb = dsb.x * split;
-		a1 = cona - (cona - s1);
-		b1 = conb - (conb - dsb.x);
-		a2 = s1 - a1;
-		b2 = dsb.x - b1;
-
-		c11 = s1 * dsb.x;
-		c21 = (((a1 * b1 - c11) + a1 * b2) + a2 * b1) + a2 * b2;
-		c2 = s1 * dsb.y;
-
-		t1 = c11 + c2;
-		e = t1 - c11;
-		t2 = ((c2 - e) + (c11 - (t1 - e))) + c21;
-
-		t12 = t1 + t2;
-		t22 = t2 - (t12 - t1);
-
-		t11 = dsa[0] - t12;
-		e = t11 - dsa[0];
-		t21 = ((-t12 - e) + (dsa.x - (t11 - e))) + dsa.y - t22;
-
-		s2 = (t11 + t21) / dsb.x;
-
-		dsc.x = s1 + s2;
-		dsc.y = s2 - (dsc.x - s1);
-
-		return dsc;
-	}
+		int GetSize();
+		int GetVertexCount();
+};
 
 
 #endif

@@ -20,6 +20,7 @@
 #include "stb_image.h"
 #include "Shader.h"
 #include "Texture.h"
+#include "Camera.h"
 #include "Plot.h"
 
 #define CURVE_NUM 10.0
@@ -56,10 +57,13 @@ class Window
 
 	public:
 		unsigned int VBO_plane, VAO_plane;
+		unsigned int VBO_sphere, VAO_sphere;
+		Camera* camera;
 		Shader* julia;
 		Shader* mandelbrot;
 
-		Fractal settings;
+		IcoSphere* icosphere;
+		RiemannMandelbrot settings;
 
 		Window();
 		Window(int, int, int = 4, int = 5);

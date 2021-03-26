@@ -73,10 +73,12 @@ struct Light
 
 out vec4 FragColor;
 
-in vec2 TexCoords;
 in vec3 Normal;
-in vec3 FragPosModel;
 in vec3 FragPosWorld;
+in vec3 FragPosModel;
+in vec2 TexCoords;
+
+in vec3 mandelbrotColor;
 
 uniform Light dirLight;
 uniform Light spotLight;
@@ -84,7 +86,6 @@ uniform Light pointLights[NR_POINT_LIGHTS];
 uniform Material material;
 uniform vec3 eyePos;
 uniform bool lighting;
-uniform bool riemannSphere;
 
 uniform float time;
 uniform float zoom;
@@ -100,7 +101,6 @@ uniform float foldCount;
 uniform float foldAngle;
 uniform vec2 foldOffset;
 
-uniform vec2 julia;
 uniform int maxIterations;
 uniform float maxDistance;
 uniform float distFineness;
@@ -109,6 +109,7 @@ uniform float c_power;
 uniform vec4 bailout;
 uniform bool useDistance;
 uniform bool isConjugate;
+
 
 vec3 CalcDirLight(Light light);
 vec3 CalcPointLight(Light light);
@@ -119,14 +120,21 @@ vec3 Specular(Light light);
 float Attenuation(Light light);
 float Intensity(Light light);
 
-vec3 Julia();
+vec3 Mandelbrot();
 
 void main()
 {
+    // properties
+    vec3 norm = normalize(Normal);
+    vec3 viewDir = normalize(eyePos - FragPosWorld);
+
+    // fix repeated texture coords (I don't actually need to do this?)
+    vec2 texCoords = TexCoords;
+
     // Lighting
     vec3 result = vec3(1);
     
-    if (riemannSphere && lighting)
+    if (lighting)
     {
         //vec3 result = CalcDirLight(dirLight);
         for(int i = 0; i < NR_POINT_LIGHTS; i++)
@@ -135,7 +143,15 @@ void main()
         //vec3 result = CalcSpotLight(spotLight);    
     }
 
-    FragColor = vec4(result * Julia(), 1.0);
+    //FragColor = vec4(1.0);
+    //FragColor = vec4(result, 1.0);
+    //FragColor = vec4(vec3(abs(norm.x), abs(norm.y), abs(norm.z)), 1.0);
+    //FragColor = vec4(abs(eyePos), 1.0);
+
+    //FragColor = vec4(Mandelbrot(), 1.0);
+    //FragColor = vec4(result * Mandelbrot(), 1.0);
+    //FragColor = vec4(mandelbrotColor, 1.0);
+    FragColor = vec4(result * mandelbrotColor, 1.0);
 }
 
 bool IsBad(vec2 z)
@@ -269,14 +285,11 @@ bool Bounded(int type, vec2 z)
 vec2 ComputeFractal(int type, vec2 z, vec2 c)
 {
     vec2 new_z;
-    
-    if (fractalType != FRAC_CUSTOM)
-    {
-        z = FoldZ(z);
 
-        if (isConjugate)
-            z.y = -z.y;
-    }
+    if (isConjugate)
+        z.y = -z.y;
+        
+    z = FoldZ(z);
 
     switch (fractalType)
     {
@@ -289,24 +302,22 @@ vec2 ComputeFractal(int type, vec2 z, vec2 c)
             new_z = c_mul(c_pow(c, c_power), z - c_pow(z, power));
             break;
         default:
-            //new_z = c_pow(z, power) + c_pow(c, c_power);
-            new_z = c_2(z) + c;
+            new_z = c_pow(z, power+2) + c_pow(c, c_power);
             break;
     }
 
     return new_z;
 }
 
-vec2 JuliaLoop(vec2 z, vec2 c, int maxIteration, inout int iter, bool use_bailout)
-{   
-    //z = (fractalType == FRAC_LAMBDA) ? vec2(.5/power,0) : z;
-    z = ComputeFractal(fractalType, (fractalType == FRAC_LAMBDA) ? vec2(1.0/power,0) : vec2(0), z);
+vec2 MandelbrotLoop(vec2 c, int maxIteration, inout int iter, bool use_bailout)
+{
+    vec2 z = ComputeFractal(fractalType, (fractalType == FRAC_LAMBDA) ? vec2(1.0/power,0) : vec2(0), c);
     vec2 pz = z;
-
+    
     for (iter = 0; iter < maxIteration && (!use_bailout || Bounded(orbitTrap, z)); ++iter)
     {
         z = ComputeFractal(fractalType, z, c);
-
+        
         if (z == pz || IsBad(z))
         {
             z = pz;
@@ -314,24 +325,25 @@ vec2 JuliaLoop(vec2 z, vec2 c, int maxIteration, inout int iter, bool use_bailou
 
             break;
         }
-
+        
         pz = z;
     }
-
+    
     return z;
 }
 
-float JuliaLoopDistance(inout vec2 z, vec2 c, int maxIteration, inout int iter, float dist, float fineness, bool use_bailout)
+float MandelbrotLoopDistance(inout vec2 c, int maxIteration, inout int iter, float dist, float fineness, bool use_bailout)
 {
-    z = ComputeFractal(fractalType, (fractalType == FRAC_LAMBDA) ? vec2(1.0/power,0) : vec2(0), z);
+    vec2 z = ComputeFractal(fractalType, (fractalType == FRAC_LAMBDA) ? vec2(1.0/power,0) : vec2(0), c);
     vec2 pz = z;
-
-    float z2 = z.x * z.x + z.y * z.y;
-    float d2 = 1;
+    
+    vec2 dz = vec2(1.0,0.0);
+    float m2 = dot(z,z);
+    float di =  1.0;
 
     for (iter = 0; iter < maxIteration && (!use_bailout || Bounded(orbitTrap, z)); ++iter)
     {
-        d2 *= 4.0 * z2;
+        dz = 2 * c_mul(z,dz) + vec2(1.0,0.0);
         
         z = ComputeFractal(fractalType, z, c);
         
@@ -343,15 +355,23 @@ float JuliaLoopDistance(inout vec2 z, vec2 c, int maxIteration, inout int iter, 
             break;
         }
         
-        z2 = z.x * z.x + z.y * z.y;
+        m2 = dot(z,z);
         
-        if(z2 > dist)
+        if(m2 > dist)
+        {
+            di = 0;
             break;
+        }
     }
     
-    float d = sqrt(z2 / d2) * .5 * log(z2);
+    c = z;
+
+    float d = sqrt(m2 / dot(dz,dz)) * .5 * log(m2);
+
+    if(di > 0.5)
+        d=0.0;
     
-	//return 1;
+	//return d/maxDistance;
 	//return sqrt(sqrt(d * pow(fineness, 2)));
 	return sqrt(clamp(d * pow(fineness, 2) * zoom, 0, 1));
 }
@@ -388,15 +408,11 @@ vec3 DomainColoring(int coloring, vec2 z, float dist, int iter)
     vec3 color;
 
     if (coloring == COL_CLASSIC || coloring == COL_SMOOTH)
-    {
-        color = ColorFromHSV(vec3(atan(FragPosModel.y, FragPosModel.x) * 180 / M_PI + t, 1, 1));
-        vec2 theta = z - (vec2(1,0) - c_sqrt(vec2(1,0) - 4*julia)) / 2;
-        return color * (atan(theta.y, theta.x) + M_PI) / (2 * M_PI);
-    }
+        return ColorFromHSV(vec3(atan(FragPosModel.y, FragPosModel.x) * 180 / M_PI + t, 1, 1));
 
     float theta = sin(atan(float(z.y), float(z.x))) * 360 + t;
 	float r = length(z);
-
+        	
 	if (z.x == 0 && z.y == 0)
 	{
 		theta = 0;
@@ -471,9 +487,12 @@ vec3 ExteriorColoring(vec2 z, float dist, int iter)
         
             mu = iter;
             //mu = iter + 1 - (log2(log2(length(z))));
-            //mu = iter + 1 - (log2(log2(dot(z,z))));
-            //mu = iter - (log(log(length(z))/log(useDistance ? maxDistance : bailout.x)) / (sign(power)*log(abs(power))));
-            mu = iter - (log(log(length(z))/log(useDistance ? maxDistance : bailout.x)) / (sign(power)*log(abs(power) == 1 ? 1.0000001 : abs(power))));
+            //mu = iter - log2(log2(dot(z,z))) + 4.0;
+            //mu = iter - log(log(dot(z,z))/(log(bailout)))/log(power);
+            //mu = iter - (log(log(length(z))/log(bailout.x)) / (sign(power)*log(abs(power))));
+            mu = iter - (log(log(length(z))/log(bailout.x)) / (sign(power)*log(abs(power) == 1 ? 1.0000001 : abs(power))));
+            //mu = iter + 1 - (log(log(length(z))) / (sign(power)*log(abs(power) == 1 ? 1.0000001 : abs(power))));
+            //mu = iter - (log(log(length(z))/log(bailout.x)));
 
             color = vec3(sin(7 * (mu + time) / 17) * .5 + .5, sin(11 * (mu + time) / 29) * .5 + .5, sin(13 * (mu + time) / 41) * .5 + .5);
             break;
@@ -493,6 +512,8 @@ vec3 ExteriorColoring(vec2 z, float dist, int iter)
 vec3 InteriorColoring(vec2 z, float dist, int iter)
 {
     vec3 color;
+    //vec3 outerColor1 = vec3(0.13f, 0.94f, 0.13f);
+    //vec3 outerColor2 = vec3(0.0f, 0.47f, 0.95f);
 
     switch (interiorColoring)
     {
@@ -530,40 +551,33 @@ vec3 GetColor(vec2 z, float dist, int iter)
     {
         color = ExteriorColoring(z, dist, iter);
     }
-
+    
     return color;
 }
 
-vec3 Julia()
+vec3 Mandelbrot()
 {
     //vec2 pos = ((gl_FragCoord.xy - .5) / (1000 - 1) - .5) * 2;
 
     int iter = 0;
+
+    // Riemann projection
+    vec3 pos = normalize(vec3(FragPosModel.x, FragPosModel.y, FragPosModel.z));
+    float tmp = (1 + (pos.y + 1)/(1 - pos.y)) / 2.0 / zoom ;
+    float r = pos.x*tmp;
+    float i = pos.z*tmp;
     
     // Initialize image center
-    vec2 z;
-    
-    if (riemannSphere)
-    {
-        // Riemann projection
-        vec3 pos = normalize(vec3(FragPosModel.x, FragPosModel.y, FragPosModel.z));
-        float tmp = (1 + (pos.y + 1)/(1 - pos.y)) / 2.0 / zoom ;
-        float r = pos.x*tmp;
-        float i = pos.z*tmp;
-    
-        z = vec2(r + center.x, i + center.y);
-    }
-    else
-        z = FragPosModel.xy;
+    vec2 z = vec2(r + center.x, i + center.y);
 
     // Distance estimation
     float dist = 0;
 
     // Compute Julia Set
     if (useDistance)
-        dist = JuliaLoopDistance(z, julia, maxIterations, iter, maxDistance, distFineness, false);
+        dist = MandelbrotLoopDistance(z, maxIterations, iter, maxDistance, distFineness, false);
     else
-        z = JuliaLoop(z, julia, maxIterations, iter, true);
+        z = MandelbrotLoop(z, maxIterations, iter, true);
 
     return GetColor(z, dist, iter);
 }
