@@ -15,8 +15,8 @@ See https://ixm-ibrahim.com/explanations/project-visualizing-julia-and-mandelbro
   **Grave Accent**: display all values to the console
    
   **Left, Right, Down Arrow Keys**: decrease, increase, or stop changing the animation  
-  ** Up Arrow Key**: speed time up  
-  ** Right Alt with Up Arrow Key**: reverse time speed increase  
+  **Up Arrow Key**: speed time up  
+  **Right Alt with Up Arrow Key**: reverse time speed increase  
   
   **Enter**: cycle through the available fractals
   **Backslash**: cycle through available orbit traps
