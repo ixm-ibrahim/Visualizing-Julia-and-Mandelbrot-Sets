@@ -13,6 +13,7 @@ See https://fractalforums.org/fractal-mathematics-and-new-theories/28/correction
   **IJKL**: movement along the complex plane  
   **O, U**: zoom in and out on the complex plane  
   
+  **Esc**: exist software  
   **Grave Accent**: display all values to the console  
    
   **Left, Right, Down Arrow Keys**: decrease, increase, or stop changing the animation  
