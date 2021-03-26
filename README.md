@@ -1,4 +1,4 @@
-# Visualizing-Julia-and-Mandelbrot-Sets
+# Visualizing Julia and Mandelbrot Sets
 
 See https://ixm-ibrahim.com/explanations/project-visualizing-julia-and-mandelbrot-sets for an extended gallery.
 See https://fractalforums.org/fractal-mathematics-and-new-theories/28/correction-for-the-infinite-burning-ship-fractal-algorithm/4112 for an explanation on how "folds" work.
