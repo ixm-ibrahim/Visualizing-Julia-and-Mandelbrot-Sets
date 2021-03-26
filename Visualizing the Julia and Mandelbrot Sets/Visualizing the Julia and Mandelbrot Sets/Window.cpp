@@ -120,6 +120,7 @@ void Window::ResetKeyState()
 	this->keyState.insert({GLFW_KEY_BACKSLASH, GLFW_RELEASE});		// change orbit trap
 	this->keyState.insert({GLFW_KEY_SPACE, GLFW_RELEASE});			// toggle riemann sphere
 	this->keyState.insert({GLFW_KEY_PERIOD, GLFW_RELEASE});			// toggle terrain
+	this->keyState.insert({GLFW_KEY_COMMA, GLFW_RELEASE});			// toggle terrain color
 	this->keyState.insert({GLFW_KEY_SLASH, GLFW_RELEASE});			// toggle lighting
 	this->keyState.insert({GLFW_KEY_R, GLFW_RELEASE});				// reset values
 	this->keyState.insert({GLFW_KEY_GRAVE_ACCENT, GLFW_RELEASE});	// display information
@@ -466,8 +467,9 @@ void Window::ProcessInput(float deltaInput)
 
 			if (settings.useRiemannSphere)
 			{
-				std::cout << "\tUsing Lighting: " << (settings.useLighting ? "YES" : "NO") << "\n"
-						  << "\tTerrain Scale: " << settings.terrain << "\n";
+				std::cout << "\t\tUsing Lighting: " << (settings.useLighting ? "YES" : "NO") << "\n"
+						  << "\t\tUsing Terrain Color: " << (settings.useTerrainColor ? "YES" : "NO") << "\n"
+						  << "\t\tTerrain Scale: " << settings.terrain << "\n";
 			}
 			if (settings.useDistance)
 			{
@@ -496,9 +498,19 @@ void Window::ProcessInput(float deltaInput)
 		else if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
 			keyState[GLFW_KEY_SPACE] = GLFW_RELEASE;
 
-		// Toggle Riemann Sphere
+		// Toggle terrain
 		if (glfwGetKey(window, GLFW_KEY_PERIOD) == GLFW_PRESS)
 			settings.terrain += change / 10.f;
+
+		// Toggle terrain color
+		if (JustPressed(GLFW_KEY_COMMA))
+		{
+			settings.useTerrainColor = !settings.useTerrainColor;
+
+			keyState[GLFW_KEY_COMMA] = GLFW_PRESS;
+		}
+		else if (glfwGetKey(window, GLFW_KEY_COMMA) == GLFW_RELEASE)
+			keyState[GLFW_KEY_COMMA] = GLFW_RELEASE;
 
 		// Toggle 3D lighting
 		if (JustPressed(GLFW_KEY_SLASH))
@@ -1053,6 +1065,7 @@ void Window::RenderLoop()
 			currentShader->SetVec3("eyePos", camera->GetPosition());
 			currentShader->SetBool("lighting", settings.useLighting);
 			currentShader->SetBool("riemannSphere", settings.useRiemannSphere);
+			currentShader->SetBool("terrainColor", settings.useTerrainColor);
 			currentShader->SetFloat("terrain", settings.terrain);
 
 			glm::vec2 r = settings.radius * glm::vec2((float)width / height, 1);

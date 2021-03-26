@@ -76,6 +76,7 @@ struct RiemannMandelbrot
 	bool isBuddhabrot;
 	bool useRiemannSphere;
 	bool useLighting;
+	bool useTerrainColor;
 	float terrain;
 	glm::vec2 center;
 	glm::vec2 julia;
@@ -105,6 +106,7 @@ struct RiemannMandelbrot
 		this->isBuddhabrot = false;
 		this->useRiemannSphere = false;
 		this->useLighting = false;
+		this->useTerrainColor = false;
 		this->terrain = 0;
 		this->julia = glm::vec2(0, 0);
 		this->center = glm::vec2(0);

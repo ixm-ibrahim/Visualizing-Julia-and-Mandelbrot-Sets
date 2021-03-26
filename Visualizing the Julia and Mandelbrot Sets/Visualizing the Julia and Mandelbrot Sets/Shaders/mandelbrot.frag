@@ -78,6 +78,8 @@ in vec3 Normal;
 in vec3 FragPosModel;
 in vec3 FragPosWorld;
 
+in vec3 mandelbrotColor;
+
 uniform Light dirLight;
 uniform Light spotLight;
 uniform Light pointLights[NR_POINT_LIGHTS];
@@ -85,6 +87,7 @@ uniform Material material;
 uniform vec3 eyePos;
 uniform bool lighting;
 uniform bool riemannSphere;
+uniform bool terrainColor;
 
 uniform float time;
 uniform float zoom;
@@ -135,7 +138,7 @@ void main()
         //vec3 result = CalcSpotLight(spotLight);    
     }
 
-    FragColor = vec4(result * Mandelbrot(), 1.0);
+    FragColor = vec4(result * (terrainColor ? mandelbrotColor : Mandelbrot()), 1.0);
 }
 
 bool IsBad(vec2 z)
