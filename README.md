@@ -20,7 +20,7 @@ See https://ixm-ibrahim.com/explanations/project-visualizing-julia-and-mandelbro
   
   **Enter**: cycle through the available fractals  
   **Backslash**: cycle through available orbit traps  
-  **Backspace*: toggle centering on first critical point of julia set while animating  
+  **Backspace**: toggle centering on first critical point of julia set while animating  
   
   **1**: change the maximum iterations  
   **2**: change the bailout radius  
