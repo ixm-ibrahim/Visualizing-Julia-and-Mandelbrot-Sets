@@ -367,7 +367,7 @@ float MandelbrotLoopDistance(inout vec2 c, int maxIteration, inout int iter, flo
     float m2 = dot(z,z);
     float di =  1.0;
     
-    if (fractalType == FRAC_MANDELBROT && power == 2 && c_power == 2 && foldCount == 0)
+    if (fractalType == FRAC_MANDELBROT && power == 2 && c_power == 1 && foldCount == 0)
     {
         float q = (c.x-.25)*(c.x-.25)+c.y*c.y;
         

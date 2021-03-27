@@ -113,8 +113,7 @@ void Texture::Use(int textureUnit)
 	glBindTexture(GL_TEXTURE_2D, this->ID);
 }
 
-int id = std::rand() % 10000;
-int Texture::SaveScreenshot(std::string path)
+int Texture::SaveScreenshot(std::string path, int id)
 {
 	stbi_flip_vertically_on_write(true);
 
@@ -135,7 +134,7 @@ int Texture::SaveScreenshot(std::string path)
 	glReadPixels(x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
 
 	char buffer[32];
-	_itoa_s(id++, buffer, 10);
+	_itoa_s(id, buffer, 10);
 	int saved = stbi_write_png((path + '/' + buffer + ".png").c_str(), width, height, 3, data, 0);
 
 	free(data);

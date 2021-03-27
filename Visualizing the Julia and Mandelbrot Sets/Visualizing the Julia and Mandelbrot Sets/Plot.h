@@ -109,7 +109,7 @@ struct RiemannMandelbrot
 		this->useTerrainColor = false;
 		this->terrain = 0;
 		this->julia = glm::vec2(0, 0);
-		this->center = glm::vec2(0);
+		this->center = glm::vec2(0, 0);
 		this->power = 2;
 		this->c_power = 1;
 		this->radius = 2;

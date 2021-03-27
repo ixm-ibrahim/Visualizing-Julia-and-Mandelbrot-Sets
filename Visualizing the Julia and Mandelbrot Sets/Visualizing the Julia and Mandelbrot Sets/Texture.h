@@ -29,7 +29,7 @@ class Texture
 
 		void Use(int);
 
-		static int SaveScreenshot(std::string);
+		static int SaveScreenshot(std::string, int);
 };
 
 #endif

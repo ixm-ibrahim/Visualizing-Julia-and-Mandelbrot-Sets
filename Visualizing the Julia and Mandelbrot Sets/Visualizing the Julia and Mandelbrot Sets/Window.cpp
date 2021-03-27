@@ -20,6 +20,7 @@ float gameTime = 0;
 float animTime = 0;
 int animate = 0;
 
+int id;
 
 /*********************************************************************
 ** Function: Window
@@ -139,6 +140,9 @@ void Window::ResetKeyState()
 *********************************************************************/
 void Window::Init()
 {
+	srand(time(NULL));
+	id = rand() % 10000;
+
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, this->major);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, this->minor);
@@ -170,6 +174,7 @@ void Window::Init()
 	GladLoader();
 
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
 
 
 	deltaX = 0;
@@ -433,6 +438,7 @@ void Window::ProcessInput(float deltaInput)
 			// Riemann Mandelbrot initial settings
 			settings.Init();
 			rollAngle = 0;
+			glCullFace(GL_BACK);
 
 			keyState[GLFW_KEY_T] = GLFW_PRESS;
 		}
@@ -444,7 +450,7 @@ void Window::ProcessInput(float deltaInput)
 		{
 			if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 			{
-				if (Texture::SaveScreenshot("D:/Documents/Test Animation"))
+				if (Texture::SaveScreenshot("D:/Documents/Test Animation", id++))
 					std::cout << "\nSuccessfully saved image.\n";
 				else
 					std::cout << "\nFailed to save image.\n";
@@ -505,7 +511,12 @@ void Window::ProcessInput(float deltaInput)
 		if (JustPressed(GLFW_KEY_SPACE))
 		{
 			settings.useRiemannSphere = !settings.useRiemannSphere;
-
+			/**/
+			if (settings.useRiemannSphere)
+				glCullFace(GL_FRONT);
+			else
+				glCullFace(GL_BACK);
+			
 			keyState[GLFW_KEY_SPACE] = GLFW_PRESS;
 		}
 		else if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
