@@ -208,7 +208,6 @@ vec2 FoldZ(vec2 z)
         return z;
     
     vec2 new_z = z;
-    float count = foldCount - 1;
     /*
     // Initial Fold
     new_z.y = abs(new_z.y);
@@ -227,12 +226,17 @@ vec2 FoldZ(vec2 z)
     new_z = c_mul(new_z, vec2(cos(-foldAngle*count), sin(-foldAngle*count)));
     */
 
+    bool doWeFoldFirst = foldCount < 0 || mod(foldCount,2) >= 1;
+
     // Rotate (constant)
     new_z = RotateZ(new_z, foldAngle);
+    // Translate
+    new_z += foldOffset;
     // Base fold
-    new_z.y = abs(new_z.y);
+    if (doWeFoldFirst)
+        new_z.y = abs(new_z.y);
 
-    for (int i = 0; i < foldCount - 1; i++)
+    for (int i = 0; i < foldCount - 1 * int(doWeFoldFirst); i++)
     {
         // Rotate
         new_z = RotateZ(new_z, -M_PI / foldCount);
@@ -240,10 +244,10 @@ vec2 FoldZ(vec2 z)
         new_z.y = abs(new_z.y);
     }
 
-    // Unrotate (both the constant and folding angles)
-    new_z = RotateZ(new_z, -foldAngle + (foldCount-1)*M_PI/foldCount);
     // Untranslate
     new_z -= foldOffset;
+    // Unrotate (both the constant and folding angles)
+    new_z = RotateZ(new_z, -foldAngle + (foldCount-1)*M_PI/foldCount);
 
     return new_z;
 }
