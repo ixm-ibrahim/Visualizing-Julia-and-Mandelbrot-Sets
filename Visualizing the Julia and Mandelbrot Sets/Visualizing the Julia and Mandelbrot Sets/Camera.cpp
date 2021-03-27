@@ -17,7 +17,7 @@ Camera::Camera(GLFWwindow* window)
 {
 	this->window = window;
 
-	this->position = glm::vec3(0.0, 0.0, 5.0);
+	this->position = glm::vec3(0.0, 0.0, 3.0);
 	//this->position = glm::vec3(4.0f, 0.5f, 1.0);
 
 	UpdateTargetDistance();
