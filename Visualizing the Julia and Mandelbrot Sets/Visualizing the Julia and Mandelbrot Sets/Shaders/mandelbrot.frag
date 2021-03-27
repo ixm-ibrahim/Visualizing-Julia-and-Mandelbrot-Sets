@@ -275,33 +275,30 @@ vec2 FoldZ(vec2 z)
 
 
     // N
+    //bool doWeFoldFirst = int(foldCount)%2 == 1;
+    //bool doWeFoldFirst = int(mod(foldCount,2)) == 1;
+    bool doWeFoldFirst = foldCount < 0 || mod(foldCount,2) >= 1;
 
-    // Translate
-    new_z += foldOffset;
     // Rotate (constant)
     new_z = RotateZ(new_z, foldAngle);
+    // Translate
+    new_z += foldOffset;
     // Base fold
-    new_z.y = abs(new_z.y);
+    if (doWeFoldFirst)
+        new_z.y = abs(new_z.y);
 
-    int intCount = int(foldCount);
-
-    for (int i = 0; i < foldCount - 1; i++)
+    for (int i = 0; i < foldCount - 1 * int(doWeFoldFirst); i++)
     {
         // Rotate
         new_z = RotateZ(new_z, -M_PI / foldCount);
-        //new_z = RotateZ(new_z, -M_PI / intCount);
         // Fold
         new_z.y = abs(new_z.y);
-
     }
 
-    // Unrotate (both the constant and folding angles)
-    new_z = RotateZ(new_z, -foldAngle + (foldCount-1)*M_PI/foldCount);
-    //new_z = RotateZ(new_z, -foldAngle + (intCount-1)*M_PI/intCount);
-    //new_z = RotateZ(new_z, -foldAngle + (intCount-1)*M_PI/foldCount);
-    //new_z = RotateZ(new_z, -foldAngle + (foldCount-1)*M_PI/intCount);
     // Untranslate
     new_z -= foldOffset;
+    // Unrotate (both the constant and folding angles)
+    new_z = RotateZ(new_z, -foldAngle + (foldCount-1)*M_PI/foldCount);
 
     return new_z;
 }
@@ -405,6 +402,18 @@ vec2 MandelbrotLoop(vec2 c, int maxIteration, inout int iter, bool use_bailout)
     vec2 z = ComputeFractal(fractalType, (fractalType == FRAC_LAMBDA) ? vec2(1.0/power,0) : vec2(0), c);
     vec2 pz = z;
     
+    if (fractalType == FRAC_MANDELBROT && power == 2 && c_power == 2 && foldCount == 0)
+    {
+        float q = (c.x-.25)*(c.x-.25)+c.y*c.y;
+        
+        if (q*(q+(c.x-.25)) < .25*c.y*c.y ||    // Period 1
+           (c.x+1)*(c.x+1)+c.y*c.y < .0625)     // Period 2
+        {
+            iter = maxIteration;
+            return c;
+        }
+    }
+
     for (iter = 0; iter < maxIteration && (!use_bailout || Bounded(orbitTrap, z)); ++iter)
     {
         z = ComputeFractal(fractalType, z, c);
@@ -431,6 +440,18 @@ float MandelbrotLoopDistance(inout vec2 c, int maxIteration, inout int iter, flo
     vec2 dz = vec2(1.0,0.0);
     float m2 = dot(z,z);
     float di =  1.0;
+    
+    if (fractalType == FRAC_MANDELBROT && power == 2 && c_power == 2 && foldCount == 0)
+    {
+        float q = (c.x-.25)*(c.x-.25)+c.y*c.y;
+        
+        if (q*(q+(c.x-.25)) < .25*c.y*c.y ||    // Period 1
+           (c.x+1)*(c.x+1)+c.y*c.y < .0625)     // Period 2
+        {
+            iter = maxIteration;
+            return 0;
+        }
+    }
 
     for (iter = 0; iter < maxIteration && (!use_bailout || Bounded(orbitTrap, z)); ++iter)
     {

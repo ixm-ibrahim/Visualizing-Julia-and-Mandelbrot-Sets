@@ -8,10 +8,12 @@
 #define TEXTURE
 
 #include <iostream>
+#include <string>
 #include <glad\glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "stb_image.h"
+#include "stb_image_write.h"
 
 class Texture
 {
@@ -26,6 +28,8 @@ class Texture
 		Texture(const char*, int, int, bool, bool);
 
 		void Use(int);
+
+		static int SaveScreenshot(std::string);
 };
 
 #endif

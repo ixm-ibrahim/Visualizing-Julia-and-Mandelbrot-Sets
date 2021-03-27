@@ -47,7 +47,7 @@ out vec3 FragPosWorld;
 out vec3 Normal;
 out vec2 TexCoords;
 
-out vec3 mandelbrotColor;
+flat out vec3 mandelbrotColor;
 
 uniform mat4 model;
 uniform mat4 projection;
@@ -366,6 +366,18 @@ float MandelbrotLoopDistance(inout vec2 c, int maxIteration, inout int iter, flo
     vec2 dz = vec2(1.0,0.0);
     float m2 = dot(z,z);
     float di =  1.0;
+    
+    if (fractalType == FRAC_MANDELBROT && power == 2 && c_power == 2 && foldCount == 0)
+    {
+        float q = (c.x-.25)*(c.x-.25)+c.y*c.y;
+        
+        if (q*(q+(c.x-.25)) < .25*c.y*c.y ||    // Period 1
+           (c.x+1)*(c.x+1)+c.y*c.y < .0625)     // Period 2
+        {
+            iter = maxIteration;
+            return 0;
+        }
+    }
 
     for (iter = 0; iter < maxIteration && (!use_bailout || Bounded(orbitTrap, z)); ++iter)
     {

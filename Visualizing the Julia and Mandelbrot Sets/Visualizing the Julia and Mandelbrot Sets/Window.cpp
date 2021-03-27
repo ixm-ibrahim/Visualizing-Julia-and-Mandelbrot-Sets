@@ -122,11 +122,12 @@ void Window::ResetKeyState()
 	this->keyState.insert({GLFW_KEY_PERIOD, GLFW_RELEASE});			// toggle terrain
 	this->keyState.insert({GLFW_KEY_COMMA, GLFW_RELEASE});			// toggle terrain color
 	this->keyState.insert({GLFW_KEY_SLASH, GLFW_RELEASE});			// toggle lighting
-	this->keyState.insert({GLFW_KEY_R, GLFW_RELEASE});				// reset values
+	this->keyState.insert({GLFW_KEY_T, GLFW_RELEASE});				// reset values
 	this->keyState.insert({GLFW_KEY_GRAVE_ACCENT, GLFW_RELEASE});	// display information
 	this->keyState.insert({GLFW_KEY_LEFT_CONTROL, GLFW_RELEASE});
 	this->keyState.insert({GLFW_KEY_LEFT_SHIFT, GLFW_RELEASE});
 	this->keyState.insert({GLFW_KEY_LEFT_ALT, GLFW_RELEASE});
+	this->keyState.insert({GLFW_KEY_RIGHT_CONTROL, GLFW_RELEASE});
 }
 
 /*********************************************************************
@@ -356,7 +357,7 @@ void Window::ProcessInput(float deltaInput)
 
 	// Mouse controls
 	{
-		if (settings.useRiemannSphere)
+		if (settings.useRiemannSphere && glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) != GLFW_PRESS)
 			camera->KeyboardInput(keyState, deltaTime);
 
 		bool leftClick = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
@@ -415,7 +416,7 @@ void Window::ProcessInput(float deltaInput)
 
 	// Keyboard controls
 	{
-		float change = 2 * deltaInput;
+		float change = 1 * deltaInput;
 
 		// Change speed
 		if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
@@ -427,66 +428,78 @@ void Window::ProcessInput(float deltaInput)
 
 
 		// Reset values
-		if (JustPressed(GLFW_KEY_R))
+		if (JustPressed(GLFW_KEY_T))
 		{
 			// Riemann Mandelbrot initial settings
 			settings.Init();
 			rollAngle = 0;
 
-			keyState[GLFW_KEY_R] = GLFW_PRESS;
+			keyState[GLFW_KEY_T] = GLFW_PRESS;
 		}
-		else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_RELEASE)
-			keyState[GLFW_KEY_R] = GLFW_RELEASE;
+		else if (glfwGetKey(window, GLFW_KEY_T) == GLFW_RELEASE)
+			keyState[GLFW_KEY_T] = GLFW_RELEASE;
 
-
-		// Display values
+		// Display values or take screenshot
 		if (JustPressed(GLFW_KEY_GRAVE_ACCENT))
 		{
-			std::cout << "PARAMETERS:\n"
-					  << "\tCenter: " << settings.center.x << ", " << settings.center.y << "\n"
-					  << "\tRoll Angle: " << rollAngle << "\n"
-					  << "\tInitial Radius: " << settings.radius << "\n"
-					  << "\tZoom Factor: " << settings.zoom << "\n"
-					  << "\tMaximum Iterations: " << settings.maxIterations << "\n"
-					  << "\tBailout:\n"
-					  << "\t\tX: " << settings.bailout.x << "\n"
-					  << "\t\tY: " << settings.bailout.y << "\n"
-					  << "\t\tZ: " << settings.bailout.z << "\n"
-					  << "\t\tW: " << settings.bailout.w << "\n"
-					  << "\tPower: " << settings.power << "\n"
-					  << "\tC Power: " << settings.c_power << "\n"
-					  << "\tIs Conjugate: " << (settings.isConjugate ? "YES" : "NO") << "\n"
-					  << "\tFractal Type: " << FracToStr(settings.fractalType) << "\n"
-					  << "\tOrbit Trap: " << TrapToStr(settings.orbitTrap) << "\n"
-					  << "\tExterior Coloring: " << ColToStr(settings.exteriorColoring) << "\n"
-					  << "\tInterior Coloring: " << ColToStr(settings.interiorColoring) << "\n"
-					  << "\tFold Angle: " << settings.foldAngle << "\n"
-					  << "\tFold Count: " << settings.foldCount << "\n"
-					  << "\tFold Offset: " << settings.foldOffset.x << ", " << settings.foldOffset.y << "\n"
-					  << "\tProjecting onto Riemann Sphere: " << (settings.useRiemannSphere ? "YES" : "NO") << "\n";
+			if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+			{
+				if (Texture::SaveScreenshot("D:/Documents/Test Animation"))
+					std::cout << "\nSuccessfully saved image.\n";
+				else
+					std::cout << "\nFailed to save image.\n";
+			}
+			else
+			{
+				std::cout << "PARAMETERS:\n"
+					      << "\tCenter: " << settings.center.x << ", " << settings.center.y << "\n"
+						  << "\tRoll Angle: " << rollAngle << "\n"
+						  << "\tInitial Radius: " << settings.radius << "\n"
+						  << "\tZoom Factor: " << settings.zoom << "\n"
+						  << "\tMaximum Iterations: " << settings.maxIterations << "\n"
+						  << "\tBailout:\n"
+						  << "\t\tX: " << settings.bailout.x << "\n"
+						  << "\t\tY: " << settings.bailout.y << "\n"
+						  << "\t\tZ: " << settings.bailout.z << "\n"
+						  << "\t\tW: " << settings.bailout.w << "\n"
+						  << "\tPower: " << settings.power << "\n"
+						  << "\tC Power: " << settings.c_power << "\n"
+						  << "\tIs Conjugate: " << (settings.isConjugate ? "YES" : "NO") << "\n"
+						  << "\tFractal Type: " << FracToStr(settings.fractalType) << "\n"
+						  << "\tOrbit Trap: " << TrapToStr(settings.orbitTrap) << "\n"
+						  << "\tExterior Coloring: " << ColToStr(settings.exteriorColoring) << "\n"
+						  << "\tInterior Coloring: " << ColToStr(settings.interiorColoring) << "\n"
+						  << "\tFold Angle: " << settings.foldAngle << "\n"
+						  << "\tFold Count: " << settings.foldCount << "\n"
+						  << "\tFold Offset: " << settings.foldOffset.x << ", " << settings.foldOffset.y << "\n"
+						  << "\tProjecting onto Riemann Sphere: " << (settings.useRiemannSphere ? "YES" : "NO") << "\n";
 
-			if (settings.useRiemannSphere)
-			{
-				std::cout << "\t\tUsing Lighting: " << (settings.useLighting ? "YES" : "NO") << "\n"
-						  << "\t\tUsing Terrain Color: " << (settings.useTerrainColor ? "YES" : "NO") << "\n"
-						  << "\t\tTerrain Scale: " << settings.terrain << "\n";
+				if (settings.useRiemannSphere)
+				{
+					std::cout << "\t\tUsing Lighting: " << (settings.useLighting ? "YES" : "NO") << "\n"
+							  << "\t\tUsing Terrain Color: " << (settings.useTerrainColor ? "YES" : "NO") << "\n"
+							  << "\t\tTerrain Scale: " << settings.terrain << "\n";
+				}
+				if (settings.useDistance)
+				{
+					std::cout << "\tMaximum Distance: " << settings.maxDistance << "\n"
+							  << "\tDistance Fineness: " << settings.distFineness << "\n";
+				}
+				if (settings.isJulia)
+				{
+					std::cout << "\tJulia Set:\n"
+							  << "\t\tValue: " << settings.julia.x << ", " << settings.julia.y << "\n"
+							  << "\t\tCentered at Critical Point: " << (settings.isJuliaCentered ? "YES" : "NO") << "\n";
+				}	  
 			}
-			if (settings.useDistance)
-			{
-				std::cout << "\tMaximum Distance: " << settings.maxDistance << "\n"
-						  << "\tDistance Fineness: " << settings.distFineness << "\n";
-			}
-			if (settings.isJulia)
-			{
-				std::cout << "\tJulia Set:\n"
-						  << "\t\tValue: " << settings.julia.x << ", " << settings.julia.y << "\n"
-						  << "\t\tCentered at Critical Point: " << (settings.isJuliaCentered ? "YES" : "NO") << "\n";
-			}	  
+			
 
 			keyState[GLFW_KEY_GRAVE_ACCENT] = GLFW_PRESS;
 		}
 		else if (glfwGetKey(window, GLFW_KEY_GRAVE_ACCENT) == GLFW_RELEASE)
 			keyState[GLFW_KEY_GRAVE_ACCENT] = GLFW_RELEASE;
+
+
 
 		// Toggle Riemann Sphere
 		if (JustPressed(GLFW_KEY_SPACE))
@@ -617,17 +630,17 @@ void Window::ProcessInput(float deltaInput)
 		float rad90 = rad +  M_PI/2;
 
 		// Complex plane movement
-		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS && (!settings.useRiemannSphere || glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS))
 			settings.center -= change * zoomFactor * glm::vec2(cos(rad), sin(rad));
-		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS && (!settings.useRiemannSphere || glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS))
 			settings.center += change * zoomFactor * glm::vec2(cos(rad), sin(rad));
-		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS && (!settings.useRiemannSphere || glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS))
 			settings.center -= change * zoomFactor * glm::vec2(cos(rad90), sin(rad90));
-		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS && (!settings.useRiemannSphere || glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS))
 			settings.center += change * zoomFactor * glm::vec2(cos(rad90), sin(rad90));
-		if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+		if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS && (!settings.useRiemannSphere || glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS))
 			rollAngle += change * 50;
-		else if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+		else if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS && (!settings.useRiemannSphere || glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS))
 			rollAngle -= change * 50;
 		else
 			rollAngle = (int)((rollAngle + (rollAngle > 0 ? 2 : -2)) / 5) * 5;
@@ -679,22 +692,12 @@ void Window::ProcessInput(float deltaInput)
 		if (glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS)
 			settings.foldAngle += change * 50 * zoomFactor;
 		else
-			settings.c_power = (int)(settings.c_power * 100) / 100.f;
-		/*if (glfwGetKey(window, GLFW_KEY_8) == GLFW_PRESS)
-		{
+			settings.foldAngle = (int)(settings.foldAngle * 100) / 100.f;
+		if (glfwGetKey(window, GLFW_KEY_8) == GLFW_PRESS)
 			settings.foldCount += change * zoomFactor;
-			
-			if (settings.foldCount > 20)
-				settings.foldCount = 20;
-			if (settings.foldCount < 0)
-				settings.foldCount = 0;
-		}
 		else
-			//settings.foldCount = (int)(settings.foldCount * 10) / 10.f;
-			//settings.foldCount = settings.foldCount;
-			settings.foldCount = settings.foldCount < 0 ? 0 : settings.foldCount;
-			//settings.foldCount = settings.foldCount > 1.99999 ? 1.99999 : settings.foldCount < 1 ? 1 : settings.foldCount;
-		*/
+			settings.foldCount = (int)(settings.foldCount * 100) / 100.f;
+		/*
 		if (JustPressed(GLFW_KEY_8))
 		{
 			if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
@@ -711,7 +714,7 @@ void Window::ProcessInput(float deltaInput)
 		}
 		else if (glfwGetKey(window, GLFW_KEY_8) == GLFW_RELEASE)
 			keyState[GLFW_KEY_8] = GLFW_RELEASE;
-		
+		*/
 		if (glfwGetKey(window, GLFW_KEY_9) == GLFW_PRESS)
 			settings.foldOffset.x += change * zoomFactor / 5.f;
 		else
