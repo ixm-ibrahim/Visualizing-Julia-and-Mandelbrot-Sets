@@ -354,7 +354,7 @@ vec2 ComputeFractal(int type, vec2 z, vec2 c)
     return new_z;
 }
 
-float MandelbrotLoopDistance(inout vec2 c, int maxIteration, inout int iter, float dist, float fineness, bool use_bailout)
+float MandelbrotLoopDistance(inout vec2 c, int maxIteration, inout int iter, float dist, float fineness, float riemannAdjustment, bool use_bailout)
 {
     vec2 z = ComputeFractal(fractalType, (fractalType == FRAC_LAMBDA) ? vec2(1.0/power,0) : vec2(0), c);
     vec2 pz = z;
@@ -407,7 +407,7 @@ float MandelbrotLoopDistance(inout vec2 c, int maxIteration, inout int iter, flo
     
 	//return d/maxDistance;
 	//return sqrt(sqrt(d * pow(fineness, 2)));
-	return sqrt(clamp(d * pow(fineness, 2) * zoom, 0, 1));
+	return sqrt(clamp(d * pow(fineness, 2) * zoom / riemannAdjustment, 0, 1));
 }
 
 float Mandelbrot()
@@ -428,7 +428,7 @@ float Mandelbrot()
     float dist = 0;
 
     // Compute Mandelbrot Set
-    dist = MandelbrotLoopDistance(z, maxIterations, iter, maxDistance, distFineness, false);
+    dist = MandelbrotLoopDistance(z, maxIterations, iter, maxDistance, distFineness, tmp, false);
 
     float height;
     if (iter >= maxIterations)

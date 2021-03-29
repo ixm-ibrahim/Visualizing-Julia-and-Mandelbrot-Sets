@@ -279,15 +279,20 @@ vec2 FoldZ(vec2 z)
     //bool doWeFoldFirst = int(mod(foldCount,2)) == 1;
     bool doWeFoldFirst = foldCount < 0 || mod(foldCount,2) >= 1;
 
-    // Rotate (constant)
-    new_z = RotateZ(new_z, foldAngle);
     // Translate
     new_z += foldOffset;
+    // Rotate (constant)
+    new_z = RotateZ(new_z, foldAngle);
     // Base fold
     if (doWeFoldFirst)
         new_z.y = abs(new_z.y);
 
-    for (int i = 0; i < foldCount - 1 * int(doWeFoldFirst); i++)
+    //int count = int(foldCount - 1 * int(doWeFoldFirst));
+
+    //float count = (foldCount == int(foldCount)) ? foldCount - 1 : foldCount - 1 * int(doWeFoldFirst);
+    float count = foldCount - 1 * int(doWeFoldFirst);
+
+    for (int i = 0; i < count; i++)
     {
         // Rotate
         new_z = RotateZ(new_z, -M_PI / foldCount);
@@ -295,10 +300,11 @@ vec2 FoldZ(vec2 z)
         new_z.y = abs(new_z.y);
     }
 
+    // Unrotate (both the constant and folding angles)
+    new_z = RotateZ(new_z, -foldAngle + (foldCount - 1)*M_PI/foldCount);
     // Untranslate
     new_z -= foldOffset;
-    // Unrotate (both the constant and folding angles)
-    new_z = RotateZ(new_z, -foldAngle + (foldCount-1)*M_PI/foldCount);
+
 
     return new_z;
 }
@@ -432,7 +438,7 @@ vec2 MandelbrotLoop(vec2 c, int maxIteration, inout int iter, bool use_bailout)
     return z;
 }
 
-float MandelbrotLoopDistance(inout vec2 c, int maxIteration, inout int iter, float dist, float fineness, bool use_bailout)
+float MandelbrotLoopDistance(inout vec2 c, int maxIteration, inout int iter, float dist, float fineness, float riemannAdjustment, bool use_bailout)
 {
     vec2 z = ComputeFractal(fractalType, (fractalType == FRAC_LAMBDA) ? vec2(1.0/power,0) : vec2(0), c);
     vec2 pz = z;
@@ -485,7 +491,7 @@ float MandelbrotLoopDistance(inout vec2 c, int maxIteration, inout int iter, flo
     
 	//return d/maxDistance;
 	//return sqrt(sqrt(d * pow(fineness, 2)));
-	return sqrt(clamp(d * pow(fineness, 2) * zoom, 0, 1));
+	return sqrt(clamp(d * pow(fineness, 2) * zoom / riemannAdjustment, 0, 1));
 }
 
 vec3 ColorFromHSV(vec3 color)
@@ -581,9 +587,10 @@ vec3 ExteriorColoring(vec2 z, float dist, int iter)
             vec3 outerColor1 = vec3(0.13f, 0.94f, 0.13f);
             vec3 outerColor2 = vec3(0.0f, 0.47f, 0.95f);
             
-            float theta = sin(atan(float(z.y), float(z.x)) + time)*.5 + .5;
+            //float theta = sin(atan(float(z.y), float(z.x)) + time)*.5 + .5;
 
-            color = mix(outerColor1, outerColor2, theta);
+            //color = mix(outerColor1, outerColor2, theta);
+            color = mix(outerColor1, outerColor2, dist);
             break;
         case COL_BLACK:
             color = vec3(0);
@@ -675,14 +682,15 @@ vec3 Mandelbrot()
 
     // Initialize image center
     vec2 z;
+    float tmp = 1;
     
     if (riemannSphere)
     {
         // Riemann projection
         vec3 pos = normalize(vec3(FragPosModel.x, FragPosModel.y, FragPosModel.z));
-        float tmp = (1 + (pos.y + 1)/(1 - pos.y)) / 2.0 / zoom ;
-        float r = pos.x*tmp;
-        float i = pos.z*tmp;
+        tmp = (1 + (pos.y + 1)/(1 - pos.y)) / 2.0;
+        float r = pos.x*tmp / zoom;
+        float i = pos.z*tmp / zoom;
     
         z = vec2(r + center.x, i + center.y);
     }
@@ -694,7 +702,7 @@ vec3 Mandelbrot()
 
     // Compute Julia Set
     if (useDistance)
-        dist = MandelbrotLoopDistance(z, maxIterations, iter, maxDistance, distFineness, false);
+        dist = MandelbrotLoopDistance(z, maxIterations, iter, maxDistance, distFineness, tmp, false);
     else
         z = MandelbrotLoop(z, maxIterations, iter, true);
 

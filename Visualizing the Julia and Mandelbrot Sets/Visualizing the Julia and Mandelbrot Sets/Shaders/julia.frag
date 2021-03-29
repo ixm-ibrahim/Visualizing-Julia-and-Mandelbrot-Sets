@@ -328,7 +328,7 @@ vec2 JuliaLoop(vec2 z, vec2 c, int maxIteration, inout int iter, bool use_bailou
     return z;
 }
 
-float JuliaLoopDistance(inout vec2 z, vec2 c, int maxIteration, inout int iter, float dist, float fineness, bool use_bailout)
+float JuliaLoopDistance(inout vec2 z, vec2 c, int maxIteration, inout int iter, float dist, float fineness, float riemannAdjustment, bool use_bailout)
 {
     z = ComputeFractal(fractalType, (fractalType == FRAC_LAMBDA) ? vec2(1.0/power,0) : vec2(0), z);
     vec2 pz = z;
@@ -360,7 +360,7 @@ float JuliaLoopDistance(inout vec2 z, vec2 c, int maxIteration, inout int iter, 
     
 	//return 1;
 	//return sqrt(sqrt(d * pow(fineness, 2)));
-	return sqrt(clamp(d * pow(fineness, 2) * zoom, 0, 1));
+	return sqrt(clamp(d * pow(fineness, 2) * zoom / riemannAdjustment, 0, 1));
 }
 
 vec3 ColorFromHSV(vec3 color)
@@ -460,9 +460,10 @@ vec3 ExteriorColoring(vec2 z, float dist, int iter)
             vec3 outerColor1 = vec3(0.13f, 0.94f, 0.13f);
             vec3 outerColor2 = vec3(0.0f, 0.47f, 0.95f);
             
-            float theta = sin(atan(float(z.y), float(z.x)) + time)*.5 + .5;
+            //float theta = sin(atan(float(z.y), float(z.x)) + time)*.5 + .5;
 
-            color = mix(outerColor1, outerColor2, theta);
+            //color = mix(outerColor1, outerColor2, theta);
+            color = mix(outerColor1, outerColor2, dist);
             break;
         case COL_BLACK:
             color = vec3(0);
@@ -549,14 +550,15 @@ vec3 Julia()
     
     // Initialize image center
     vec2 z;
+    float tmp = 1;
     
     if (riemannSphere)
     {
         // Riemann projection
         vec3 pos = normalize(vec3(FragPosModel.x, FragPosModel.y, FragPosModel.z));
-        float tmp = (1 + (pos.y + 1)/(1 - pos.y)) / 2.0 / zoom ;
-        float r = pos.x*tmp;
-        float i = pos.z*tmp;
+        tmp = (1 + (pos.y + 1)/(1 - pos.y)) / 2.0 / zoom ;
+        float r = pos.x*tmp / zoom;
+        float i = pos.z*tmp / zoom;
     
         z = vec2(r + center.x, i + center.y);
     }
@@ -568,7 +570,7 @@ vec3 Julia()
 
     // Compute Julia Set
     if (useDistance)
-        dist = JuliaLoopDistance(z, julia, maxIterations, iter, maxDistance, distFineness, false);
+        dist = JuliaLoopDistance(z, julia, maxIterations, iter, maxDistance, distFineness, tmp, false);
     else
         z = JuliaLoop(z, julia, maxIterations, iter, true);
 

@@ -706,8 +706,8 @@ void Window::ProcessInput(float deltaInput)
 			settings.foldAngle = (int)(settings.foldAngle * 100) / 100.f;
 		if (glfwGetKey(window, GLFW_KEY_8) == GLFW_PRESS)
 			settings.foldCount += change * zoomFactor;
-		else
-			settings.foldCount = (int)(settings.foldCount * 100) / 100.f;
+		//else
+			//settings.foldCount = (int)(settings.foldCount * 100) / 100.f;
 		/*
 		if (JustPressed(GLFW_KEY_8))
 		{

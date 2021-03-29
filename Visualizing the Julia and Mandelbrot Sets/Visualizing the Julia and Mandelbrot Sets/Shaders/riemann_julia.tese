@@ -354,7 +354,7 @@ vec2 ComputeFractal(int type, vec2 z, vec2 c)
     return new_z;
 }
 
-float JuliaLoopDistance(inout vec2 z, vec2 c, int maxIteration, inout int iter, float dist, float fineness, bool use_bailout)
+float JuliaLoopDistance(inout vec2 z, vec2 c, int maxIteration, inout int iter, float dist, float fineness, float riemannAdjustment, bool use_bailout)
 {
     z = ComputeFractal(fractalType, (fractalType == FRAC_LAMBDA) ? vec2(1.0/power,0) : vec2(0), z);
     vec2 pz = z;
@@ -386,7 +386,7 @@ float JuliaLoopDistance(inout vec2 z, vec2 c, int maxIteration, inout int iter, 
     
 	//return 1;
 	//return sqrt(sqrt(d * pow(fineness, 2)));
-	return sqrt(clamp(d * pow(fineness, 2) * zoom, 0, 1));
+	return sqrt(clamp(d * pow(fineness, 2) * zoom / riemannAdjustment, 0, 1));
 }
 
 float Julia()
@@ -407,7 +407,7 @@ float Julia()
     float dist = 0;
 
     // Compute Julia Set
-    dist = JuliaLoopDistance(z, julia, maxIterations, iter, maxDistance, distFineness, false);
+    dist = JuliaLoopDistance(z, julia, maxIterations, iter, maxDistance, distFineness, tmp, false);
 
     float height;
     if (iter >= maxIterations)
