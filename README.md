@@ -6,8 +6,8 @@ See https://fractalforums.org/fractal-mathematics-and-new-theories/28/correction
 ***CONTROLS:***
 
   **WASD, QE**: camera movement (for 3D mode, press right-control to move the fractal center)  
-  **Mouse**: camera movement  
-  **Scroll**: zoom  
+  **Mouse Right Click**: camera movement  
+  **Scroll, R, F**: zoom  
   **T**: reset all values  
 
   **IJKL**: movement along the complex plane  
@@ -15,6 +15,7 @@ See https://fractalforums.org/fractal-mathematics-and-new-theories/28/correction
   
   **Esc**: exist software  
   **Grave Accent**: display all values to the console  
+  **Left Control + Grave Accent**: take a screenshot, saved to hardcoded destination
    
   **Left, Right, Down Arrow Keys**: decrease, increase, or stop changing the animation  
   **Up Arrow Key**: speed time up  
